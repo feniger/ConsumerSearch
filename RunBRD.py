@@ -1533,7 +1533,7 @@ def extract_data_new(list_of_file_IDs):
 						all_data.append([distribution, [mechanism, mech_pars], file_ID.headers_to_plot, good_cols])
 	return all_data
 
-
+#TODO: describe output
 def extract_data(dist_identifier, cycle_or_equilibrium, is_opt_par_file, headers_to_plot, mechanism_identifier=all_mechanism_identifiers):
 	all_data = []
 	#Assuming os is in the right directory
@@ -1925,24 +1925,24 @@ legend_loc=7 # center right
 def compare_mechanisms():
 
 	# cycle_or_equilibrium = "Cycles"
-	# dist_identifier = "Integer uniform distribution, low=1,  high=101"
+	dist_identifier = "Integer uniform distribution, low=1,  high=101"
 	# dist_identifier = "Beta distribution, parameter=0.5,0.5,100"	
 	# dist_identifier = "Beta distribution, parameter=5,1,100"
 	# dist_identifier = "Beta distribution, parameter=1,3,100"		
 	# dist_identifier = "Beta distribution, parameter=2,2,210"
 	# dist_identifier = "Beta distribution, parameter=2,5,130"
-	dist_identifier = "Equal revenue distribution, precision=200"
+	# dist_identifier = "Equal revenue distribution, precision=200"
 	# dist_identifier = "Geometric distribution, parameter=0.01, precision=500"
 	# dist_identifier = "Almost Equal revenue distribution, precision=300"
 
 	# comp_social_welfare(dist_identifier=dist_identifier)
 	# return
 
-	comp_eq_price(dist_identifier=dist_identifier)
+	# comp_eq_price(dist_identifier=dist_identifier)
 
 	# comp_seller_revenue(dist_identifier=dist_identifier)
 
-	# comp_utility(dist_identifier=dist_identifier)
+	comp_utility(dist_identifier=dist_identifier)
 	# return
 
 	# comp_cycle_len()
@@ -1996,7 +1996,7 @@ def main():
 					]
 
 	#The mechanisms generally at interest for sc versus price
-	mechanisms = [Low_first_mechanism(), u_random_mechanism()]
+	mechanisms = [u_random_mechanism()] # Low_first_mechanism(), 
 #-----
 	if args['plotFile']:
 		print( "file to plot:" + args['file_to_plot'])
@@ -2185,6 +2185,10 @@ def main():
 	if args['doAllRuns']:
 		# # LF and uniform random (equilibria)
 		print( "\n\n\n\n do_plotSearchCostVsEqPrice FALSE\n\n\n\n")
+		print("Distributions:" + str(testcase_distributions)) 
+		print ("Mechanisms:" + str(mechanisms))
+		print("\n\n\n\n")
+
 		do_plotSearchCostVsEqPrice(distributions=testcase_distributions, mechanisms=mechanisms, for_cycles=False)
 		# # # LF and uniform random (cycles)
 		print( "\n\n\n\n do_plotSearchCostVsEqPrice TRUE \n\n\n\n")
