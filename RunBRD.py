@@ -4,7 +4,7 @@ import csv
 import argparse
 import time
 import datetime
-# import dateutil
+import dateutil
 import matplotlib.pyplot as plt
 import numpy as np
 from pylab import show
@@ -13,13 +13,14 @@ import math
 import copy
 from scipy.special import btdtr
 import re
+import random ### NEW dist
 
 #---------------------------------------------------#
 #----------------Globals----------------------------#
 #---------------------------------------------------#
 
 #Global: numeric precision 
-precision=0.00001
+precision=0.000001
 
 #Global: number of best responses until halt 
 stopper = 1000
@@ -87,7 +88,7 @@ class Distribution:
 		if abs(1-tot_prob) < precision:
 			return True
 		else:
-			print("INVALID distribution!! total prob = " + str(tot_prob) + ", tot prob <= 1:" + str(tot_prob <= 1) + ", precision:" + str(1-tot_prob < precision))
+			print "INVALID distribution!! total prob = " + str(tot_prob) + ", tot prob <= 1:" + str(tot_prob <= 1) + ", precision:" + str(1-tot_prob < precision)
 			return False
 
 	#dist = [val, prob] pairs, return support
@@ -153,8 +154,8 @@ class beta_dist(Distribution):
 
 		#Check validity
 		if not self.IsValid():
-			print(self.WhoAmI())
-			print("I Created an invalid distribution!")
+			print (self.WhoAmI())
+			print ("I Created an invalid distribution!")
 
 	
 	def WhoAmI(self):
@@ -174,13 +175,13 @@ class int_uniform_dist(Distribution):
 		#Create distribution
 		self.dist = []
 		num = high - low
-		for i in range(low, high, 1):
+		for i in xrange(low, high, 1):
 			self.dist.append([i, float(1)/num])
 
 		#Check validity	
 		if not self.IsValid():
-			print( self.WhoAmI())
-			print( "I Created an invalid distribution!")
+			print self.WhoAmI()
+			print "I Created an invalid distribution!"
 
 	def WhoAmI(self):
 		return "Integer uniform distribution, low=" + str(self.low) + ",  high=" + str(self.high)
@@ -199,7 +200,7 @@ class geometric_dist(Distribution):
 		self.dist = []
 		curProb = self.p
 		tot_prob = 0
-		for i in frange(1, self.precision, 1):
+		for i in xrange(1, self.precision, 1):
 			self.dist.append([i, curProb])
 			tot_prob += curProb
 			curProb = curProb * (1-float(self.p))
@@ -208,8 +209,8 @@ class geometric_dist(Distribution):
 
 		#Check validity
 		if not self.IsValid():
-			print( self.WhoAmI())
-			print( "I Created an invalid distribution!")
+			print self.WhoAmI()
+			print "I Created an invalid distribution!"
 
 	
 	def WhoAmI(self):
@@ -227,7 +228,7 @@ class equal_revenue_dist(Distribution):
 		self.dist = []
 		tot_prob = 0
 		curProb = 0
-		for i in frange(1, self.precision, 1):
+		for i in xrange(1, self.precision, 1):
 			# Pr[ER = i] = Pr[ER >= i] - Pr[ER >= i+1]
 			curProb = float(1)/i - float(1)/(i+1)
 			self.dist.append([i, curProb])
@@ -237,8 +238,8 @@ class equal_revenue_dist(Distribution):
 
 		#Check validity
 		if not self.IsValid():
-			print( self.WhoAmI())
-			print( "I Created an invalid distribution!")
+			print self.WhoAmI()
+			print "I Created an invalid distribution!"
 
 	
 	def WhoAmI(self):
@@ -257,7 +258,7 @@ class almost_equal_revenue_dist(Distribution):
 		self.dist = []
 		tot_prob = 0
 		curProb = 0
-		for i in frange(0, self.precision, 1):
+		for i in xrange(0, self.precision, 1):
 			# Pr[v = i] = Pr[v >= i] - Pr[v >= i+1]
 			curProb = float(1)/(i+1) - float(1)/(i+2)
 			self.dist.append([i, curProb])
@@ -267,8 +268,8 @@ class almost_equal_revenue_dist(Distribution):
 
 		#Check validity
 		if not self.IsValid():
-			print( self.WhoAmI())
-			print( "I Created an invalid distribution!")
+			print self.WhoAmI()
+			print "I Created an invalid distribution!"
 
 	
 	def WhoAmI(self):
@@ -289,8 +290,8 @@ class self_made_dist(Distribution):
 
 		#Check validity
 		if not self.IsValid():
-			print( self.WhoAmI())
-			print( "I Created an invalid distribution!")
+			print self.WhoAmI()
+			print "I Created an invalid distribution!"
 	
 	def WhoAmI(self):
 		return "Self made distribution, dist=" + str(self.dist)
@@ -302,8 +303,10 @@ class self_made_dist(Distribution):
 #---------------------------------------------------#
 
 class Mechanism:
-	def __init__(self, dist, search_cost):
-		self.dist = dist 
+	### NEW dist: added second distribution
+	def __init__(self, p1_dist, p2_dist, search_cost):
+		self.p1_dist = p1_dist
+		self.p2_dist = p2_dist
 		self.search_cost = search_cost
 
 	def WhoAmI(self):
@@ -320,7 +323,7 @@ class Mechanism:
 #Independent of distribution and search cost
 class Low_first_mechanism(Mechanism):
 	def __init__(self):
-		Mechanism.__init__(self, None, None)
+		Mechanism.__init__(self, None, None, None) ### NEW dist
 		self.shift = 13
 
 	def WhoAmI(self):
@@ -343,7 +346,7 @@ class Low_first_mechanism(Mechanism):
 #Independent of distribution and search cost
 class u_random_mechanism(Mechanism):
 	def __init__(self):
-		Mechanism.__init__(self, None, None)
+		Mechanism.__init__(self, None, None, None) ### NEW dist
 		self.shift = 10
 
 	def WhoAmI(self):
@@ -358,7 +361,7 @@ class u_random_mechanism(Mechanism):
 #Independent of distribution and search cost
 class weighted_random_mechanism(Mechanism):
 	def __init__(self, p1_weight, p2_weight):
-		Mechanism.__init__(self, None, None)
+		Mechanism.__init__(self, None, None, None) ### NEW dist
 		self.p1_weight = p1_weight
 		self.p2_weight = p2_weight
 
@@ -375,7 +378,7 @@ class weighted_random_mechanism(Mechanism):
 #Independent of distribution and search cost
 class threshold_mechanism(Mechanism):
 	def __init__(self, threshold):
-		Mechanism.__init__(self, None, None)
+		Mechanism.__init__(self, None, None, None) ### NEW dist
 		self.threshold = threshold
 		self.shift = 6
 
@@ -409,7 +412,7 @@ def taylor_exp(num):
 #Independent of distribution and search cost
 class exponential_mechanism(Mechanism):
 	def __init__(self, alpha):
-		Mechanism.__init__(self, None, None)
+		Mechanism.__init__(self, None, None, None) ### NEW dist
 		self.alpha = alpha
 		self.shift = 2
 
@@ -435,63 +438,85 @@ class exponential_mechanism(Mechanism):
 #---------------------------------------------------#
 
 class Profile():
-	def __init__(self, dist=None, search_cost=None, mechanism=None, p1_price=None, p2_price=None):
-		self.dist = dist
+	### NEW dist
+	def __init__(self, p1_dist=None, p2_dist=None, search_cost=None, mechanism=None, p1_price=None, p2_price=None, productionCosts=None): ### NEW PC
+		self.p1_dist = p1_dist ### NEW dist
+		self.p2_dist = p2_dist
 		self.search_cost = search_cost
 		self.mechanism = None
 		self.p1_price = p1_price
 		self.p2_price = p2_price
-		self.r_price = None
+
+		self.p1_r_price = None ### NEW dist: two reservation prices now
+		self.p2_r_price = None
+
+		self.productionCosts = productionCosts ### NEW PC
 
 	def IsEmpty(self):
-		return self.dist == None
+		return ((self.p1_dist == None) or (self.p2_dist == None)) ### NEW dist
 
 	def WhoAmI(self):
 		retStr = ""
 		retStr += "search_cost=" + str(self.search_cost) + "\n" 
 		
-		if self.dist != None:
-			retStr += "dist=" + str(self.dist.WhoAmI()) + "\n" + "r_price=" + str(self.Res_price()) + "\n" 
+		### NEW dist
+		if self.p1_dist != None:
+			retStr += "p1_dist=" + str(self.p1_dist.WhoAmI()) + "\n" + "p1_r_price=" + str(self.Res_price_p1()) + "\n"
+		if self.p2_dist != None:
+			retStr += "p2_dist=" + str(self.p2_dist.WhoAmI()) + "\n" + "p2_r_price=" + str(self.Res_price_p2()) + "\n" 
 
 		if self.mechanism != None:
 			retStr += "mechanism=" + str(self.mechanism.WhoAmI()) + "\n"
 
 		retStr += "p1_price=" + str(self.p1_price) + "\n" + "p2_price=" + str(self.p2_price) + "\n"
+		
 		return retStr
 
 	#Careful when updating search cost!!
 	def SetSearchCost(self, sc):
 		self.search_cost = sc
-		self.r_price = None
+		
+		### NEW dist
+		self.p1_r_price = None
+		self.p2_r_price = None
 
 
 	#precision: accuracy of reservation price
-	def Res_price(self, rerun=False):
-		if self.r_price == None or rerun == True:
+	### NEW dist: reservation price for p1 distribution
+	def Res_price_p1(self, rerun=False):
+		if self.p1_r_price == None or rerun == True:
 			if self.search_cost == 0:
-				self.r_price = self.dist.Supp_max() + 1 
-				return self.r_price
+				self.p1_r_price = self.p1_dist.Supp_max() + 1 
+				return self.p1_r_price
 			#Check search cost validity
-			if self.dist.Expectation() < self.search_cost:
-				print( "Search cost too high")
-				print( "E[dist] = " + str(self.dist.Expectation()))
-				print( "search cost = " + str(self.search_cost) )
+			if self.p1_dist.Expectation() < self.search_cost:
+				print "Search cost too high"
+				print "E[dist] = " + str(self.p1_dist.Expectation())
+				print "search cost = " + str(self.search_cost) 
 				raise NotImplementedError("Search cost too high")
 
 			#Check precision
-			if abs(self.dist.Expectation() - self.search_cost) < precision:
-				print( "bad search cost! precision-wise")
+			if abs(self.p1_dist.Expectation() - self.search_cost) < precision:
+				print "bad search cost! precision-wise"
 				return None
 
-			high = self.dist.Supp_max()
-			low = self.dist.Supp_min()
+			high = self.p1_dist.Supp_max()
+			low = self.p1_dist.Supp_min()
 			found = False 
 			#Find reservation price up to precision
 			while not found:
 				cur = (float(high) + low)/2
-				E = expected_risk(self.dist, cur)
-				# print( "E/c/h/l: " + str(E) + "/" + str(cur) + "/" + str(high) + "/" + str(low))
+
+				if cur - low < precision:
+					print "Search cost too high"
+					print "E[dist] = " + str(self.p1_dist.Expectation())
+					print "search cost = " + str(self.search_cost) 
+					raise NotImplementedError("Search cost too high")
+				
+				E = expected_risk(self.p1_dist, cur)
+				# print "E/c/h/l: " + str(E) + "/" + str(cur) + "/" + str(high) + "/" + str(low)
 				margin = E - self.search_cost
+				
 				if margin > precision:
 					low = cur
 				elif margin < -precision:
@@ -499,11 +524,55 @@ class Profile():
 				else:
 					found = True
 					# print "Reservation price: " + str(cur) # + ",  h/l:" + str(high) + "/" + str(low)
-			self.r_price = cur
+			self.p1_r_price = cur
 
-		return self.r_price
+		return self.p1_r_price
 
+	### NEW dist: reservation price for p2 distribution
+	def Res_price_p2(self, rerun=False):
+		if self.p2_r_price == None or rerun == True:
+			if self.search_cost == 0:
+				self.p2_r_price = self.p2_dist.Supp_max() + 1 
+				return self.p2_r_price
+			#Check search cost validity
+			if self.p2_dist.Expectation() < self.search_cost:
+				print "Search cost too high"
+				print "E[dist] = " + str(self.p2_dist.Expectation())
+				print "search cost = " + str(self.search_cost) 
+				raise NotImplementedError("Search cost too high")
 
+			#Check precision
+			if abs(self.p2_dist.Expectation() - self.search_cost) < precision:
+				print "bad search cost! precision-wise"
+				return None
+
+			high = self.p2_dist.Supp_max()
+			low = self.p2_dist.Supp_min()
+			found = False 
+			#Find reservation price up to precision
+			while not found:
+				cur = (float(high) + low)/2
+
+				if cur - low < precision:
+					print "Search cost too high"
+					print "E[dist] = " + str(self.p2_dist.Expectation())
+					print "search cost = " + str(self.search_cost) 
+					raise NotImplementedError("Search cost too high")
+				
+				E = expected_risk(self.p2_dist, cur)
+				# print "E/c/h/l: " + str(E) + "/" + str(cur) + "/" + str(high) + "/" + str(low)
+				margin = E - self.search_cost
+				
+				if margin > precision:
+					low = cur
+				elif margin < -precision:
+					high = cur
+				else:
+					found = True
+					# print "Reservation price: " + str(cur) # + ",  h/l:" + str(high) + "/" + str(low)
+			self.p2_r_price = cur
+
+		return self.p2_r_price
 
 #computes E[(v-res_price)^+] for v <- dist 
 def expected_risk(dist, res_price):
@@ -521,14 +590,14 @@ def res_price(dist, search_cost):
 		return dist.Supp_max() + 1
 	#Check search cost validity
 	if dist.Expectation() < search_cost:
-		print( "Search cost too high")
-		print( "E[dist] = " + str(dist.Expectation()))
-		print( "search cost = " + str(search_cost) )
+		print "Search cost too high"
+		print "E[dist] = " + str(dist.Expectation())
+		print "search cost = " + str(search_cost) 
 		return None
 
 	#Check precision
 	if abs(dist.Expectation() - search_cost) < precision:
-		print( "bad search cost! precision-wise")
+		print "bad search cost! precision-wise"
 		return None
 
 	high = dist.Supp_max()
@@ -537,6 +606,14 @@ def res_price(dist, search_cost):
 	#Reservation price precision
 	while not found:
 		cur = (float(high) + low)/2
+
+
+		if cur - low < precision:
+			print "Search cost too high"
+			print "E[dist] = " + str(self.dist.Expectation())
+			print "search cost = " + str(self.search_cost) 
+			raise NotImplementedError("Search cost too high")
+
 		E = expected_risk(dist, cur)
 		# print "E/c/h/l: " + str(E) + "/" + str(cur) + "/" + str(high) + "/" + str(low)
 		margin = E - search_cost
@@ -555,79 +632,81 @@ def res_price(dist, search_cost):
 #-----Demand1 and Demand2 assume a Buy-Box slot -----------#
 #----------------------------------------------------------#
 
-def Demand1_ver_2(dist, res_price, my_price, competing_price):
+### NEW demand: easiest to follow version of the Demand function for BB slot
+# my_price is the price for the BB
+# competing_price is the price for the non-BB
+def Demand1_ver_3(dist_1, dist_2, res_price, my_price, competing_price): ### NEW dist: dist_1 = BB slot, dist_2 = Non-BB slot
 	demand = 0
-	#if the other seller never gets searched
-	if competing_price > res_price:
-		#Pr[v1 >= my_price]
-		return (1-dist.CDF(my_price))
-	
-	# value for me is so high that the other bidder doesn't get searched
-	demand += 1 - dist.CDF(res_price - competing_price + my_price)
-	
-	# the other seller gets searched but the buyer returns to me
-	for [val, prob] in dist.Get():
-		if val < my_price:
-			continue
-		elif val >= res_price - competing_price + my_price:
-			break
-		else:
-			demand += prob * dist.CDF(val - my_price + competing_price)
+
+	for [val1, prob1] in dist_1.Get(): # BB value
+		if val1 >= my_price: # only way to increase demand
+			if ((val1 - my_price) >= (res_price - competing_price)): # never check Non-BB slot
+				demand += prob1
+			else: # check Non-BB slot
+				for [val2, prob2] in dist_2.Get(): # non-BB value
+				# Tie (v1 - my_price = v2 - competing_price) is broken in favor of first slot
+					if ((val1 - my_price) >= (val2 - competing_price)):
+						demand += prob1 * prob2
+	#print "Demand1_ver_3 = " + str(demand)
 	return demand
 
-def Demand2_ver_2(dist, res_price, my_price, competing_price):
+### NEW demand: easiest to follow version of the Demand function for Non-BB slot
+# my_price is the price for the non-BB
+# competing_price is the price for the BB
+def Demand2_ver_3(dist_1, dist_2, res_price, my_price, competing_price): ### NEW dist: dist_2 = BB slot, dist_1 = Non-BB slot
 	demand = 0
-	# if I never get searched
+	#If my_price is too high to be searched
 	if my_price > res_price:
 		return 0
 
-	# if I get searched and the buyer chooses me
-	for [val, prob] in dist.Get():
-		if val >= res_price - my_price + competing_price:
-			break
-		elif val < competing_price:
-			demand += prob * (1 - dist.CDF(my_price))
-		else:
-			demand += prob * (1 - dist.CDF(val - competing_price + my_price))
-	
+	for [val1, prob1] in dist_2.Get():   # BB value
+		if ((val1 - competing_price) < (res_price - my_price)): # check Non-BB slot
+			for [val2, prob2] in dist_1.Get():  # non-BB value
+				if val2 >= my_price and ((val2 - my_price) >= (val1 - competing_price)):
+					demand += prob1 * prob2
+				
+	#print "Demand2_ver_3 = " + str(demand)
 	return demand
-
 
 #Returns demand function of Buy-Box slot
 #For v1, v2 <- dist
 #D_1(p|q) = \int_{0}^\infty \Pr[v1 - p > \max\{0,  \min \{r, v2\} -q \} ] dF(v2) 
-def Demand1(dist, res_price, my_price, competing_price):
+# my_price is the price for the BB
+# competing_price is the price for the non-BB
+def Demand1(dist_1, dist_2, res_price, my_price, competing_price): ### NEW dist: dist_1 = BB slot, dist_2 = Non-BB slot
 	demand = 0
 	#If other never gets searched
 	if competing_price > res_price:
 		#Pr[v1 >= my_price]
-		return (1-dist.CDF(my_price))
+		return (1-dist_1.CDF(my_price))
 
 	#Pr[v2 < competing_price] * Pr[v1 >= my_price]
 	#Seller 1 always selected (regardless of search)
-	demand += dist.CDF(competing_price) * (1-dist.CDF(my_price))
+	demand += dist_2.CDF(competing_price) * (1-dist_1.CDF(my_price))
 
 	# print "demand1 =  " + str(demand)
 
 	# integrate v2 from competing_price to res_price (Pr[v2] * Pr[v1 - my_price >= v2 - competing_price])
 	# I.e. Tie (v1 - my_price = v2 - competing_price) is broken in favor of first slot
 	# Seller 1 selected if beats seller 2
-	for [val, prob] in dist.Get():
+	for [val, prob] in dist_2.Get():
 		if val >= competing_price and val < res_price:
-			demand += (1 - dist.CDF(val - competing_price + my_price)) * prob
+			demand += (1 - dist_1.CDF(val - competing_price + my_price)) * prob
 			# print "demand1 =  " + str(demand)
 
 	#Pr[v2 >= res_price] * Pr[v1 - my_price >= res_price - competing_price ]
 	#seller 2 is not searched (because if searched then selected):
-	demand += (1 - dist.CDF(res_price)) * (1 - dist.CDF(res_price - competing_price + my_price))
-	# print "demand1 =  " + str(demand)
+	demand += (1 - dist_2.CDF(res_price)) * (1 - dist_1.CDF(res_price - competing_price + my_price))
+	#print "demand1 =  " + str(demand)
 	return demand
 
 
 #Returns demand function of non Buy-Box slot
 #For v_p, v_q <- dist
 #D_1(p|q) = \int_{0}^\infty \Pr[v_p - p > \max\{0,  \min \{r, v_q\} -q \} ] dF(v_q) 
-def Demand2(dist, res_price, my_price, competing_price):
+# my_price is the price for the non-BB
+# competing_price is the price for the BB
+def Demand2(dist_1, dist_2, res_price, my_price, competing_price): ### NEW dist: dist_2 = BB slot, dist_1 = Non-BB slot
 	#If my_price is too high to be searched
 	if my_price > res_price:
 		return 0
@@ -635,19 +714,19 @@ def Demand2(dist, res_price, my_price, competing_price):
 	demand = 0
 	#Pr[v1 < competing_price] * Pr[v2 >= my_price]
 	#Seller 2 always selected (because always searched and seller 1 has negative utility)
-	demand += dist.CDF(competing_price) * (1-dist.CDF(my_price))
+	demand += dist_2.CDF(competing_price) * (1-dist_1.CDF(my_price))
 	#print "demand2 =  " + str(demand)
 
 	#integrate v1 from competing_price to competing_price + res_price - my_price
-	for [val, prob] in dist.Get():
+	for [val, prob] in dist_2.Get():
 		# print str(val) + ":" + str(prob)
 		# print str(val) + ", " + str(competing_price) + ", " + str(res_price) + ", " + str(my_price)
 		if val >= competing_price and val <=res_price - my_price + competing_price:
 			# Pr[v = my_price + val - competing_price]
-			pr_eq =  dist.Pr.get(my_price + val - competing_price, 0)
+			pr_eq =  dist_1.Pr.get(my_price + val - competing_price, 0)
 			# Pr[my_value > my_price + min(res_price, cur) - competing_price] 
 			# I.e. Tie (my_value - my_price = val - competing_price) is broken in favor of first (the other) slot
-			demand += (1 - dist.CDF(my_price + val - competing_price) - pr_eq) * prob
+			demand += (1 - dist_1.CDF(my_price + val - competing_price) - pr_eq) * prob
 			#print "demand2 =  " + str(demand)
 	return demand
 
@@ -657,73 +736,101 @@ def Demand2(dist, res_price, my_price, competing_price):
 #--------------------------------------------------------------------------#
 
 #Returns demand of first slot (both slots have search cost)
-def Demand1NBB(dist, res_price, my_price, competing_price):
+### NEW dist: added second distribution and second reservation price
+# dist_1 = my distribution, dist_2 = competing seller distribution
+# res_price_1 = my reservation price, res_price_2 = competing seller's reservation price
+# my_price is in first slot, competing_price is in second slot
+def Demand1NBB(dist_1, dist_2, res_price_1, res_price_2, my_price, competing_price):
 	#If my_price is too high to be searched
-	if my_price > res_price:
+	if my_price > res_price_1:
 		return 0
-	#I'm searched 
-	return Demand1(dist=dist, res_price=res_price, my_price=my_price, competing_price=competing_price)
+	#I'm searched
+	return Demand1(dist_1=dist_1, dist_2=dist_2, res_price=res_price_2, my_price=my_price, competing_price=competing_price)
 
 #Returns demand of second slot (both slots have search cost)
-def Demand2NBB(dist, res_price, my_price, competing_price):
+### NEW dist: added second distribution and second reservation price
+# dist_1 = my distribution, dist_2 = competing seller distribution
+# res_price_1 = my reservation price, res_price_2 = competing seller's reservation price
+# my_price is in second slot, competing_price is in first slot
+def Demand2NBB(dist_1, dist_2, res_price_1, res_price_2, my_price, competing_price):
 	#If competing_price is too high to be searched and my price isn't
-	if competing_price > res_price and my_price <= res_price:
+	if competing_price > res_price_2 and my_price <= res_price_1:
 		#Pr[v2 >= my_price]
-		return (1 - dist.CDF(my_price))
+		return (1 - dist_1.CDF(my_price))
 
 	#First is searched 
-	return Demand2(dist=dist, res_price=res_price, my_price=my_price, competing_price=competing_price)
+	return Demand2(dist_1=dist_1, dist_2=dist_2, res_price=res_price_1, my_price=my_price, competing_price=competing_price)
 
 
 #Returns revenue of Buy-Box slot
-def Revenue1(dist, res_price, my_price, competing_price):
-	d = Demand1(dist=dist, res_price=res_price, my_price=my_price, competing_price=competing_price)
+### NEW dist: added second distribution
+def Revenue1(dist_1, dist_2, res_price, my_price, competing_price, productionCost): ### NEW PC
+	dd = Demand1_ver_3(dist_1=dist_1, dist_2=dist_2, res_price=res_price, my_price=my_price, competing_price=competing_price)
+	d = Demand1(dist_1=dist_1, dist_2=dist_2, res_price=res_price, my_price=my_price, competing_price=competing_price)
 	# print "demand1:" + str(d)
-	return my_price * d # Demand1(dist=dist, res_price=res_price, my_price=my_price, competing_price=competing_price)
+	return ((my_price - productionCost) * d) # Demand1(dist=dist, res_price=res_price, my_price=my_price, competing_price=competing_price)
 
 
 #Returns revenue of non Buy-Box slot
-def Revenue2(dist, res_price, my_price, competing_price):
-	return my_price * Demand2(dist=dist, res_price=res_price, my_price=my_price, competing_price=competing_price)
+### NEW dist: added second distribution
+def Revenue2(dist_1, dist_2, res_price, my_price, competing_price, productionCost): ### NEW PC
+	dd = Demand2_ver_3(dist_1=dist_1, dist_2=dist_2, res_price=res_price, my_price=my_price, competing_price=competing_price)
+	return ((my_price - productionCost) * Demand2(dist_1=dist_1, dist_2=dist_2, res_price=res_price, my_price=my_price, competing_price=competing_price))
 
 #Returns revenue of first slot (no Buy-box)
-def Revenue1NBB(dist, res_price, my_price, competing_price):
-	return my_price * Demand1NBB(dist=dist, res_price=res_price, my_price=my_price, competing_price=competing_price)
+### NEW dist: added second distribution and second reservation price
+def Revenue1NBB(dist_1, dist_2, res_price_1, res_price_2, my_price, competing_price, productionCost): ### NEW PC
+	return ((my_price - productionCost) * Demand1NBB(dist_1=dist_1, dist_2=dist_2, res_price_1=res_price_1, res_price_2=res_price_2, my_price=my_price, competing_price=competing_price))
 
 
 #Returns revenue of second slot (no Buy-box)
-def Revenue2NBB(dist, res_price, my_price, competing_price):
-	return my_price * Demand2NBB(dist=dist, res_price=res_price, my_price=my_price, competing_price=competing_price)
+### NEW dist: added second distribution and second reservation price
+def Revenue2NBB(dist_1, dist_2, res_price_1, res_price_2, my_price, competing_price, productionCost): ### NEW PC
+	return ((my_price - productionCost) * Demand2NBB(dist_1=dist_1, dist_2=dist_2, res_price_1=res_price_1, res_price_2=res_price_2, my_price=my_price, competing_price=competing_price))
 
 #Expected revenue over distribution BuyBoxDist  
 def ExpectedRev(profile, my_id, my_price):
+	#Compute reservation price
+	### NEW dist: two reservation prices
+	p1_r_price = profile.Res_price_p1()
+	p2_r_price = profile.Res_price_p2()
+
 	#Set competing price and outcome
 	if my_id == 1:
 		competing_price = profile.p2_price
-		BuyBoxDist = profile.mechanism.BuyBoxWinner(p1_price=my_price, p2_price=profile.p2_price)		
+		BuyBoxDist = profile.mechanism.BuyBoxWinner(p1_price=my_price, p2_price=profile.p2_price)
+		productionCost = profile.productionCosts[0] ### NEW PC
+		my_dist = profile.p1_dist ### NEW dist
+		compete_dist = profile.p2_dist ### NEW dist
+		my_r_price = p1_r_price ### NEW dist
+		compete_r_price = p2_r_price ### NEW dist
 	else:
 		competing_price = profile.p1_price
 		BuyBoxDist = profile.mechanism.BuyBoxWinner(p1_price=profile.p1_price, p2_price=my_price)
+		productionCost = profile.productionCosts[1] ### NEW PC
+		my_dist = profile.p2_dist ### NEW dist
+		compete_dist = profile.p1_dist ### NEW dist
+		my_r_price = p2_r_price ### NEW dist
+		compete_r_price = p1_r_price ### NEW dist
 
 	
 	# print "BBdist:"  + BuyBoxDist.WhoAmI()
 	# print "my price = " + str(my_price)
 	# print "competing_price=" + str(competing_price)
-	#Compute reservation price
-	r_price = profile.Res_price()
-	# print "res price: " + str(r_price)
+	
 #---------No Buy-Box slot:
+	### NEW dist: dist_1 = my distribution, dist_2 = competing seller distribution
+	### NEW dist: res_price_1 = my reservation price, res_price_2 = competing seller's reservation price
 	if BuyBoxDist.IsEmpty():
 		if my_price < competing_price:
-			return Revenue1NBB(dist=profile.dist, res_price=r_price, my_price=my_price, competing_price=competing_price)
+			return Revenue1NBB(dist_1=my_dist, dist_2=compete_dist, res_price_1=my_r_price, res_price_2=compete_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost) ### NEW PC
 		elif competing_price < my_price:
-			return Revenue2NBB(dist=profile.dist, res_price=r_price, my_price=my_price, competing_price=competing_price)
+			return Revenue2NBB(dist_1=my_dist, dist_2=compete_dist, res_price_1=my_r_price, res_price_2=compete_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost) ### NEW PC
 		#buyer selects uniformly at random
 		else:
-			return (0.5 * Revenue1NBB(dist=profile.dist, res_price=r_price, my_price=my_price, competing_price=competing_price) 
+			return (0.5 * Revenue1NBB(dist_1=my_dist, dist_2=compete_dist, res_price_1=my_r_price, res_price_2=compete_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost) ### NEW PC
 				   +
-				   0.5 * Revenue2NBB(dist=profile.dist, res_price=r_price, my_price=my_price, competing_price=competing_price))
-
+				   0.5 * Revenue2NBB(dist_1=my_dist, dist_2=compete_dist, res_price_1=my_r_price, res_price_2=compete_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost)) ### NEW PC
 
 
 
@@ -737,24 +844,38 @@ def ExpectedRev(profile, my_id, my_price):
 	for [winner, prob] in BuyBoxDist.Get():
 		if winner == my_id:
 			# print "111prob:" + str(prob)
-			retRev += prob * Revenue1(dist=profile.dist, res_price=r_price, my_price=my_price, competing_price=competing_price)
+			### NEW dist: use BB distribution and Non-BB reservation price
+			### NEW PC
+			if winner == 1:
+				### NEW dist: dist_1 = BB slot, dist_2 = Non-BB slot
+				retRev += prob * Revenue1(dist_1=profile.p1_dist, dist_2=profile.p2_dist, res_price=p2_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost)
+			else:
+				### NEW dist: dist_1 = BB slot, dist_2 = Non-BB slot
+				retRev += prob * Revenue1(dist_1=profile.p2_dist, dist_2=profile.p1_dist, res_price=p1_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost)
 			# print "retRev 1: " + str(retRev)
 		#assuming sellers ids are {1, 2}
 		elif winner == 3 - my_id:
-			retRev += prob * Revenue2(dist=profile.dist, res_price=r_price, my_price=my_price, competing_price=competing_price)
+			### NEW dist: use Non-BB reservation price
+			### NEW PC
+			if winner == 1:
+				### NEW dist: dist_2 = BB slot, dist_1 = Non-BB slot
+				retRev += prob * Revenue2(dist_1=profile.p2_dist, dist_2=profile.p1_dist, res_price=p2_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost)
+			else:
+				### NEW dist: dist_2 = BB slot, dist_1 = Non-BB slot
+				retRev += prob * Revenue2(dist_1=profile.p1_dist, dist_2=profile.p2_dist, res_price=p1_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost)
 			# print "retRev 2: " + str(retRev)
 		else:
-			print( "Wrong format of BuyBoxDist!!")
+			print "Wrong format of BuyBoxDist!!"
 	return retRev
 
 #Buyer utility when Buy-box seller price is BB_price (etc.) 
-def BUwithOrder(dist, search_cost, BB_price, NBB_price):
+def BUwithOrder(dist_1, dist_2, search_cost, BB_price, NBB_price): ### NEW dist: dist_1 = BB slot, dist_2 = Non-BB slot
 	#Compute reservation price
-	r_price = res_price(dist=dist, search_cost=search_cost)
+	r_price = res_price(dist=dist_2, search_cost=search_cost) ### NEW dist: use Non-BB dist to get reservation price
 
 	tot_util = 0
 	#For each match value with Buy-Box seller
-	for [v1, p1] in dist.Get():
+	for [v1, p1] in dist_1.Get(): ### NEW dist
 		# print v1
 		#Match first immediately 
 		if v1- BB_price > max(0, r_price - NBB_price):
@@ -766,7 +887,7 @@ def BUwithOrder(dist, search_cost, BB_price, NBB_price):
 			tot_util -= p1 * search_cost
 
 			#Match highest (if any)
-			for [v2, p2] in dist.Get():
+			for [v2, p2] in dist_2.Get(): ### NEW dist
 				tot_util += p1 * p2 * max(v1 - BB_price, v2 - NBB_price, 0)
 		
 		# #No match case
@@ -777,13 +898,14 @@ def BUwithOrder(dist, search_cost, BB_price, NBB_price):
 	return tot_util
 
 #Buyer utility when there is no Buy-box 
-def BU_NBB_withOrder(dist, search_cost, first_price, second_price):
+### NEW dist: dist_1 = first slot, dist_2 = second slot
+def BU_NBB_withOrder(dist_1, dist_2, search_cost, first_price, second_price):
 	#Compute reservation price
-	r_price = res_price(dist=dist, search_cost=search_cost)
+	r_price = res_price(dist=dist_2, search_cost=search_cost) ### NEW dist: use second slot to get reservation price
 
 	tot_util = 0
 	#For each match value with first seller
-	for [v1, p1] in dist.Get():
+	for [v1, p1] in dist_1.Get(): ### NEW dist
 		#Pay search cost for first seller
 		tot_util -= p1 * search_cost
 
@@ -798,7 +920,7 @@ def BU_NBB_withOrder(dist, search_cost, first_price, second_price):
 			tot_util -= p1 * search_cost
 
 			#Match highest 
-			for [v2, p2] in dist.Get():
+			for [v2, p2] in dist_2.Get(): ### NEW dist
 				tot_util += p1 * p2 * max(v1 - first_price, v2 - second_price, 0)
 	# print "tot util: " + tot_util
 	return tot_util
@@ -814,23 +936,38 @@ def buyerUtility(profile):
 
 	#If no buy-box
 	if buyBoxDist.IsEmpty():
-		return BU_NBB_withOrder(dist=profile.dist, search_cost=profile.search_cost, 
-								first_price= min(profile.p1_price, profile.p2_price),
-								second_price=max(profile.p1_price, profile.p2_price))
+		### NEW dist: determine first slot and second slot
+		# dist_1 = first slot, dist_2 = second slot
+		# first slot goes to seller with lowest price
+		if profile.p1_price < profile.p2_price: # seller 1 gets first slot
+			return BU_NBB_withOrder(dist_1=profile.p1_dist, dist_2=profile.p2_dist, search_cost=profile.search_cost, 
+								first_price=profile.p1_price, second_price=profile.p2_price)
+		elif profile.p2_price < profile.p1_price: # seller 2 gets first slot
+			return BU_NBB_withOrder(dist_1=profile.p2_dist, dist_2=profile.p1_dist, search_cost=profile.search_cost, 
+								first_price=profile.p2_price, second_price=profile.p1_price)
+		else: # tie; sellers have same price
+			randNum = random.randint(1,2) # randomly pick 1 or 2
+			if randNum == 1: # seller 1 gets first slot
+				return BU_NBB_withOrder(dist_1=profile.p1_dist, dist_2=profile.p2_dist, search_cost=profile.search_cost, 
+								first_price=profile.p1_price, second_price=profile.p2_price)
+			else: # seller 2 gets first slot
+				return BU_NBB_withOrder(dist_1=profile.p2_dist, dist_2=profile.p1_dist, search_cost=profile.search_cost, 
+								first_price=profile.p2_price, second_price=profile.p1_price)
 
 	#Validate buybox distribution
 	if not buyBoxDist.IsValid():
-		print( buyBoxDist.WhoAmI())
+		print buyBoxDist.WhoAmI()
 		raise NotImplementedError( "Buy box didn't return a distribution" )
 
 	#Compute utility
 	tot_util = 0
 	for [BB_id, prob] in buyBoxDist.Get():
-		# print str(BB_id) +  " : " + str(prob) 
+		# print str(BB_id) +  " : " + str(prob)
+		### NEW dist: dist_1 = BB slot, dist_2 = Non-BB slot
 		if BB_id == 1:
-			tot_util += prob * BUwithOrder(dist=profile.dist, search_cost=profile.search_cost, BB_price=profile.p1_price, NBB_price=profile.p2_price)
+			tot_util += prob * BUwithOrder(dist_1=profile.p1_dist, dist_2=profile.p2_dist, search_cost=profile.search_cost, BB_price=profile.p1_price, NBB_price=profile.p2_price)
 		if BB_id == 2:
-			tot_util += prob * BUwithOrder(dist=profile.dist, search_cost=profile.search_cost, BB_price=profile.p2_price, NBB_price=profile.p1_price)
+			tot_util += prob * BUwithOrder(dist_1=profile.p2_dist, dist_2=profile.p1_dist, search_cost=profile.search_cost, BB_price=profile.p2_price, NBB_price=profile.p1_price)
 
 	return tot_util
 		
@@ -850,22 +987,31 @@ def BR(profile, my_id, expressive=False):
 	bestPrice = None
 
 	if expressive:
-		print( "my id " + str(my_id))
-		print( profile.WhoAmI())
+		print "my id " + str(my_id)
+		print profile.WhoAmI()
+		
+	### NEW PC : choose correct production cost
+	### NEW dist: need to select correct distribution based on ID in {1,2}
+	if my_id == 1:
+		productionCost = profile.productionCosts[0]
+		distribution = profile.p1_dist.Supp()
+	else:
+		productionCost = profile.productionCosts[1]
+		distribution = profile.p2_dist.Supp()
 	
 	#For each value in the support of dist 
-	for val in profile.dist.Supp():
+	for val in distribution: ### NEW dist
 		# print 
 		# print
 		curRev = ExpectedRev(profile=profile, my_id=my_id, my_price=val)
 		# print str(val) + ": " + str(curRev)
 
-		if curRev > maxRev:
+		if curRev > maxRev and val >= productionCost: ### NEW PC
 			maxRev = curRev
 			bestPrice = val
 
 	if expressive:
-		print( "Rev from best price " + str(bestPrice) + " is " + str(maxRev)) 
+		print "Rev from best price " + str(bestPrice) + " is " + str(maxRev) 
 
 	return bestPrice
 
@@ -873,7 +1019,7 @@ def BR(profile, my_id, expressive=False):
 #ids need to be 1 and 2
 # Returns: 	if reached equilibrium: [id1, eq_price1, id2, eq_price2]
 #			otherwise: None
-# cycle_special: Whenever a cycle is found, compute it's average utility and return
+# cycle_special: Whenever a cycle is found, computer it's average utility and return
 def BRD(profile, cycle_special=False, expressive=False):
 	# print mechanism.WhoAmI()
 	#TBD - in the first iteration if br pX is br then stop not at equilibrium.
@@ -913,13 +1059,13 @@ def BRD(profile, cycle_special=False, expressive=False):
 		
 		if expressive:
 		#Print state
-			print( "state:")
-			print( cur_profile.WhoAmI())
+			print "state:"
+			print cur_profile.WhoAmI()
 
 		#If equilibrium stop and return
 		if br1 == cur_profile.p1_price and br2 == cur_profile.p2_price:
-			print( "Equilibrium!")
-			print( "P1: " + str(br1) + ",   P2: " + str(br2))
+			print "Equilibrium!"
+			print "P1: " + str(br1) + ",   P2: " + str(br2)
 			#Return equilibrium
 			return ["profile", cur_profile] #[pX_id, brX, pY_id, brY]
 
@@ -930,8 +1076,8 @@ def BRD(profile, cycle_special=False, expressive=False):
 		#Check for cycle
 		if [cur_profile.p1_price, cur_profile.p2_price] in cycle_identifier:
 			if expressive:
-				print( "Cycle!") # + " returned to:"
-				print( cur_profile.WhoAmI())
+				print "Cycle!" # + " returned to:"
+				print cur_profile.WhoAmI()
 
 			cycle_identifier.append([cur_profile.p1_price, cur_profile.p2_price])
 			#In case we want to return the utility of a cycle, do it here for now:
@@ -943,10 +1089,10 @@ def BRD(profile, cycle_special=False, expressive=False):
 			cycle_identifier.append([cur_profile.p1_price, cur_profile.p2_price])
 
 	if s == 0:
-		print( "ERROR!!!: Stopped due to stopper!")
+		print "ERROR!!!: Stopped due to stopper!"
 		return ["profile", Profile()] 
 
-	print( "ERROORR!!!! how did I get here?!?????")
+	print "ERROORR!!!! how did I get here?!?????"
 
 
 # Assumption: 'cycle identifier' has the end of the cycle in the last element
@@ -1001,7 +1147,7 @@ def printToFile(plotArray, meta_data=""):
 				f.write(str(item) + ", ")
 			f.write("\r\n")
 
-	print( "printed to: " + filename)
+	print "printed to: " + filename
 
 #Reads lines from f until metadata is done
 def parse_metadata(filehandle):
@@ -1069,7 +1215,7 @@ def plotFile(filename):
 		#Reads lines from f until metadata is done
 		[eq_or_cyc, opt_par_file, distribution, [mechanism, mech_pars], headers] = parse_metadata(filehandle=f)
 		title =  str(eq_or_cyc)  + ", Dist:"  + str(distribution) + ", Mechanism: " + str(mechanism)
-		print( "title: " + title)
+		print "title: " + title
 		np_arr = np.loadtxt(f, delimiter = ',', usecols = range(len(headers)))
 
 	plotThis1(title=title, plotArray=np_arr, params_labels=headers)
@@ -1105,7 +1251,7 @@ def plotThis(dist, mech, plotArray, X_axis_label, Y_axis_label):
 	for [x_axis_val, x_id, pX_price, y_id, pY_price, bu, pX_rev, pY_rev] in plotArray:
 		#Verify validity of input
 		if x_id != pX_id or y_id != pY_id:
-			print( "ID PROBLEMS!!!!")
+			print "ID PROBLEMS!!!!"
 			return None
 
 		X_axis.append(x_axis_val)
@@ -1147,66 +1293,77 @@ def studyState(profile):
 
 
 #P is the profile
+### NEW PC: may not be symmetric equilibria anymore
 def opt_threshold(P):
-	#[threshold, equilibrium price] pairs
-	th_pr = {}
+	#[threshold, equilibrium price 1] pairs (### NEW PC)
+	th_pr_1 = {}
+	#[threshold, equilibrium price 2] pairs (### NEW PC)
+	th_pr_2 = {}
 	#[threshold, buyer utility] pairs
 	th_bu = {}
 	real_step_num = step_num
-	while int(P.dist.Expectation()) / real_step_num == 0:
+	while int(P.p1_dist.Expectation()) / real_step_num == 0: ### NEW dist: for now assume same distribution will be used
 		real_step_num -= 1
 
 	if real_step_num == 0:
-		print( "expectation:" + str(P.dist.Expectation()))
+		print "expectation:" + str(P.p1_dist.Expectation()) ### NEW dist: for now assume same distribution will be used
 		raise NotImplementedError("SOMETHING WRONG HEREEEEEEE expectation to small?")
 
 
 	#Compute [threshold, price] pairs for symmetric equilibria
-	for threshold in frange(1, int(P.dist.Expectation())-1, int(P.dist.Expectation()) / real_step_num):
+	### NEW dist: for now assume same distribution will be used
+	for threshold in xrange(1, int(P.p1_dist.Expectation())-1, int(P.p1_dist.Expectation()) / real_step_num):
 		# print "threshold: " + str(threshold)
 
 		#Define mechanism 
 		P.mechanism = threshold_mechanism(threshold)
 		#Run best response dynamics
 		[rv, end_profile] = BRD(P)
-		#If BRD returned a symmetric equilibrium, save it
-		if (not end_profile.IsEmpty()) and end_profile.p1_price == end_profile.p2_price:
+		#If BRD returned an equilibrium, save it (### NEW PC)
+		if (not end_profile.IsEmpty()) and rv == "profile":
 			# print "A: " + str(threshold) + ", " + str(pX_price)
 			bu = buyerUtility(end_profile)
 			th_bu[threshold] = bu
-			th_pr[threshold] = end_profile.p1_price
-
+			th_pr_1[threshold] = end_profile.p1_price
+			#th_pr[threshold][0] = end_profile.p1_price
+			th_pr_2[threshold] = end_profile.p2_price
+	
 	#find threshold that maximizes buyer utility
 	if th_bu:
 
-		max_th_bu = max(th_bu.items(), key=operator.itemgetter(1))
+		max_th_bu = max(th_bu.iteritems(), key=operator.itemgetter(1))
 		min_th = max_th_bu[0]
-		eq_pr = th_pr[min_th] 
+		eq_pr_1 = th_pr_1[min_th] ### NEW PC
+		eq_pr_2 = th_pr_2[min_th]
 
 		#redefine mechanism
 		P.mechanism = threshold_mechanism(min_th)
 		#Set eq prices
-		P.p1_price = P.p2_price = eq_pr
+		P.p1_price = eq_pr_1 ### NEW PC
+		P.p2_price = eq_pr_2
 
 		if P.IsEmpty():
 			raise NotImplementedError("P is empty")
 
 		[bu, p1_rev, p2_rev] = studyState(P)
-		if p1_rev != p2_rev:
-			print( "ERROR!!! something is wrong here, equilibrium should be symmetric")
-			return [None, None, None, None]
+		#if p1_rev != p2_rev:
+			#print "ERROR!!! something is wrong here, equilibrium should be symmetric"
+			#return [None, None, None, None]
 		#Print data
 		# print "sc= " + str(sc) + ", th=" + str(min_th) + ", eq_price=" + str(eq_pr) + ", utility=" +str(bu) + ", rev=" + str(p_rev)
 
 		#All data
-		return [eq_pr, bu, p1_rev, min_th]
-		print( "----------------")
+		return [eq_pr_1, eq_pr_2, bu, p1_rev, p2_rev, min_th] ### NEW PC: return both prices and revenues
+		print "----------------"
 	else:
-		return [None, None, None, None]
+		return [None, None, None, None, None, None] ### NEW PC
 
-
+### NEW PC: may not be symmetric equilibria anymore
 def opt_alpha(P):
-	alpha_to_price = {}
+	#[alpha, equilibrium price 1] pairs (### NEW PC)
+	alpha_to_price_1 = {}
+	#[alpha, equilibrium price 2] pairs (### NEW PC)
+	alpha_to_price_2 = {}
 	alpha_to_bu = {}
 	low_alpha = -0.5
 	high_alpha = 0
@@ -1216,19 +1373,21 @@ def opt_alpha(P):
 		#Run best response dynamics
 		[rv, end_profile] = BRD(P)
 
-		if (not end_profile.IsEmpty()) and end_profile.p1_price == end_profile.p2_price:
-			alpha_to_price[cur] = end_profile.p1_price
+		if (not end_profile.IsEmpty()) and rv == "profile": ### NEW PC
+			alpha_to_price_1[cur] = end_profile.p1_price
+			alpha_to_price_2[cur] = end_profile.p2_price
 			bu = buyerUtility(end_profile)
 			alpha_to_bu[cur] = bu
-			print( "Equil. : alpha = " + str(cur) + ": price = " + str(end_profile.p1_price) + " : sc=" + str(end_profile.search_cost) + "buyer utility=" + str(bu))
+			#print "Equil. : alpha = " + str(cur) + ": price1 = " + str(end_profile.p1_price) + ": price2 = " + str(end_profile.p2_price) + " : sc=" + str(end_profile.search_cost) + "buyer utility=" + str(bu)
 
 	#If there is an equilibrium
-	if alpha_to_price:
+	if alpha_to_price_1:
 		#Find buyer utility maximizing 
-		max_alpha_bu = max(alpha_to_bu.items(), key=operator.itemgetter(1))
-		# min_al_pr = min(alpha_to_price.items(), key=operator.itemgetter(1))
+		max_alpha_bu = max(alpha_to_bu.iteritems(), key=operator.itemgetter(1))
+		# min_al_pr = min(alpha_to_price.iteritems(), key=operator.itemgetter(1))
 		min_alpha = max_alpha_bu[0]
-		eq_pr = alpha_to_price[min_alpha] 
+		eq_pr_1 = alpha_to_price_1[min_alpha] ### NEW PC
+		eq_pr_2 = alpha_to_price_2[min_alpha] ### NEW PC
 
 		# print "All alpha to price: " + str(alpha_to_price)
 		# print "min pair: " + str(min_al_pr)
@@ -1239,22 +1398,24 @@ def opt_alpha(P):
 		#redefine mechanism
 		P.mechanism = exponential_mechanism(min_alpha)
 		#Set equilibrium prices
-		P.p1_price = P.p2_price = eq_pr
+		### NEW PC: prices may not be the same anymore
+		P.p1_price = eq_pr_1
+		P.p2_price = eq_pr_2
 		[bu, p1_rev, p2_rev] = studyState(P)
-		if p1_rev != p2_rev:
-			print( "ERROR!!! something is wrong here, equilibrium should be symmetric")
-			print( str(p1_rev) + "!=" + str(p2_rev))
-			return [None, None, None, None]
+		#if p1_rev != p2_rev:
+			#print "ERROR!!! something is wrong here, equilibrium should be symmetric"
+			#print str(p1_rev) + "!=" + str(p2_rev)
+			#return [None, None, None, None]
 		#Print data
 		# print "sc= " + str(sc) + ", th=" + str(min_th) + ", eq_price=" + str(eq_pr) + ", utility=" +str(bu) + ", rev=" + str(p_rev)
-		return [eq_pr, bu, p1_rev, min_alpha] #, math.exp(math.exp(-min_alpha))
+		return [eq_pr_1, eq_pr_2, bu, p1_rev, p2_rev, min_alpha] #, math.exp(math.exp(-min_alpha))
 
 	else:
-		return [None, None, None, None]
+		return [None, None, None, None, None, None]
 
-def do_plotSCtoLowestPriceUsingThreshold(distributions, for_cycles=False):
+def do_plotSCtoLowestPriceUsingThreshold(distributions, productionCosts, for_cycles=False):
 	P = Profile(search_cost=0, p1_price=0, p2_price=0)
-
+	P.productionCosts = productionCosts ### NEW PC
 
 	#Define distribution: equal weights for integers 
 	# P.dist = int_uniform_dist(1, 301)
@@ -1264,7 +1425,9 @@ def do_plotSCtoLowestPriceUsingThreshold(distributions, for_cycles=False):
 	# P.dist = beta_dist(2, 5, 100)
 
 	for distr in distributions:
-		P.dist = distr
+		### NEW dist: set both to be the same for now
+		P.p1_dist = distr
+		P.p2_dist = distr
 	
 		meta_data = ""
 		if for_cycles:
@@ -1275,7 +1438,8 @@ def do_plotSCtoLowestPriceUsingThreshold(distributions, for_cycles=False):
 
 
 		#Write distribution to meta data
-		meta_data += "# Distribution:" + P.dist.WhoAmI() + "\r\n"
+		### NEW dist: for now assume same distribution will be used
+		meta_data += "# Distribution:" + P.p1_dist.WhoAmI() + "\r\n"
 
 		#Define mechanism 
 		P.mechanism = threshold_mechanism(0)
@@ -1284,7 +1448,11 @@ def do_plotSCtoLowestPriceUsingThreshold(distributions, for_cycles=False):
 		meta_data += "# Mechanism:" + P.mechanism.WhoAmI() + "\r\n"
 		meta_data += "# optimal threshold per search cost \r\n"
 
-		print( "expectation = " + str(P.dist.Expectation()))
+		### NEW plot PC
+		meta_data += "# Production Costs: seller 1 = " + str(productionCosts[0]) + "; seller 2 = " + str(productionCosts[1]) + "\r\n"
+
+		### NEW dist: for now assume same distribution will be used
+		print "expectation = " + str(P.p1_dist.Expectation())
 		# print "dist:" 
 		# for [val, prob] in P.dist.Get():
 		# 	print "1- Pr[v < " + str(val) +"] =" + str( 1 - P.dist.CDF(val))
@@ -1293,22 +1461,27 @@ def do_plotSCtoLowestPriceUsingThreshold(distributions, for_cycles=False):
 		# and minimizes the equilibrium price  
 		retArr = []
 		#For each search cost
-		real_step_num = float(P.dist.Expectation()) / (step_num + P.mechanism.shift)
-		for sc in frange(0, int(P.dist.Expectation()) - 1,  real_step_num):
-			print( "----------------")
+		### NEW dist: for now assume same distribution will be used
+		real_step_num = float(P.p1_dist.Expectation()) / (step_num + P.mechanism.shift)
+		for sc in frange(0, int(P.p1_dist.Expectation()) - 1,  real_step_num):
+			print "----------------"
 			#Set search cost (carefully!)
 			P.SetSearchCost(sc)
 			#Print start state
-			print( "Start profile: \n" + P.WhoAmI())
+			print "Start profile: \n" + P.WhoAmI()
 			#Compute optimal threshold, the induced equilibrium price, the utility and revenue in that stateS
-			[eq_pr, bu, p1_rev, min_th] = opt_threshold(P)
-			if eq_pr != None:
-				retArr.append([sc, eq_pr, bu, p1_rev, min_th])
+			[eq_pr_1, eq_pr_2, bu, p1_rev, p2_rev, min_th] = opt_threshold(P) ### NEW PC: second revenue and eqilibrium price
+			if eq_pr_1 != None and (productionCosts[0] == 0 and productionCosts[1] == 0): ### NEW PC: added second condition
+				retArr.append([sc, eq_pr_1, bu, p1_rev, min_th])
+				params_labels=["Search cost", "Equilibrium price", "Utility", "Seller revenue", "Optimal threshold"]
+			elif eq_pr_1 != None and not(productionCosts[0] == 0 and productionCosts[1] == 0): ### NEW PC: new case
+				retArr.append([sc, eq_pr_1, eq_pr_2, bu, p1_rev, p2_rev, min_th])
+				params_labels=["Search cost", "Seller 1 equilibrium Price", "Seller 2 equilibrium Price", "Utility", "Seller 1 equilibrium Revenue", "Seller 2 equilibrium Revenue", "Optimal threshold"]
 			else: 
-				print( "Search cost " + str(sc) + " has no equilibrium")
+				print "Search cost " + str(sc) + " has no equilibrium"
 
 		np_arr = np.array(retArr)	
-		params_labels=["Search cost", "Equilibrium price", "Utility", "Seller revenue", "Optimal threshold"]
+		
 
 		#Write meta data
 		meta_data += "# " + str(params_labels) + "\r\n"
@@ -1317,7 +1490,7 @@ def do_plotSCtoLowestPriceUsingThreshold(distributions, for_cycles=False):
 		# plotThis1(title="Search cost to min threshold", plotArray=np_arr,params_labels=params_labels)
 		# plotThis(dist=dist, mech=mech, plotArray=retArr,X_axis_label="Search costs", Y_axis_label="Sellers prices")
 
-def do_plotSCtoMinAlphaInExponentialMech(distributions, for_cycles=False):
+def do_plotSCtoMinAlphaInExponentialMech(distributions, productionCosts, for_cycles=False):
 
 	#Define distribution: equal weights for integers 
 	# P.dist = int_uniform_dist(1, 101)
@@ -1331,7 +1504,12 @@ def do_plotSCtoMinAlphaInExponentialMech(distributions, for_cycles=False):
 	for distr in distributions:
 		#Empty profile
 		P = Profile(search_cost=0, p1_price=0, p2_price=0)
-		P.dist = distr
+
+		### NEW dist: set both to be the same for now
+		P.p1_dist = distr
+		P.p2_dist = distr
+
+		P.productionCosts = productionCosts ### NEW PC
 
 		meta_data = ""
 		if for_cycles:
@@ -1341,7 +1519,8 @@ def do_plotSCtoMinAlphaInExponentialMech(distributions, for_cycles=False):
 			meta_data = "# Solution concept: Equilibria \r\n"
 	
 		#Write distribution to meta data
-		meta_data += "# Distribution:" + P.dist.WhoAmI() + "\r\n"
+		### NEW dist: for now assume same distribution will be used
+		meta_data += "# Distribution:" + P.p1_dist.WhoAmI() + "\r\n"
 
 		#set mechanism 
 		P.mechanism = exponential_mechanism(0)
@@ -1350,24 +1529,31 @@ def do_plotSCtoMinAlphaInExponentialMech(distributions, for_cycles=False):
 		meta_data += "# Mechanism:" + P.mechanism.WhoAmI() + "\r\n"
 		meta_data += "# optimal alpha per search cost \r\n"
 
+		### NEW plot PC
+		meta_data += "# Production Costs: seller 1 = " + str(productionCosts[0]) + "; seller 2 = " + str(productionCosts[1]) + "\r\n"
+
 		#Returns for each search cost, the threshold that guarantees a symmetric equilibrium, and minimizes the equilibrium price  
 		retArr = []
 		#For each search cost
-		real_step_num = float(P.dist.Expectation()) / (step_num + P.mechanism.shift)
-		for sc in frange(0, (int(P.dist.Expectation()) - 1),  real_step_num):
+		### NEW dist: for now assume same distribution will be used
+		real_step_num = float(P.p1_dist.Expectation()) / (step_num + P.mechanism.shift)
+		for sc in frange(0, (int(P.p1_dist.Expectation()) - 1),  real_step_num):
 			#Set search cost (carefully!)
 			P.SetSearchCost(sc)
 
-			[min_price, bu, p1_rev, min_alpha] = opt_alpha(P)
-			if min_price != None:
+			[eq_pr_1, eq_pr_2, bu, p1_rev, p2_rev, min_alpha] = opt_alpha(P)
+			if eq_pr_1 != None and (productionCosts[0] == 0 and productionCosts[1] == 0): ### NEW PC: added second condition
 				#All data
-				retArr.append([sc, min_price, bu, p1_rev, min_alpha]) #, math.exp(math.exp(-min_alpha))
+				retArr.append([sc, eq_pr_1, bu, p1_rev, min_alpha]) #, math.exp(math.exp(-min_alpha))
+				params_labels=["Search cost", "Equilibrium price", "Utility", "Seller revenue", "optimal alpha"]
+			elif eq_pr_1 != None and not(productionCosts[0] == 0 and productionCosts[1] == 0): ### NEW PC: new case
+				retArr.append([sc, eq_pr_1, eq_pr_2, bu, p1_rev, p2_rev, min_alpha])
+				params_labels=["Search cost", "Seller 1 equilibrium Price", "Seller 2 equilibrium Price", "Utility", "Seller 1 equilibrium Revenue", "Seller 2 equilibrium Revenue", "optimal alpha"]
 			else:
-				print( "Search cost " + str(sc) + " has no equilibrium")
+				print "Search cost " + str(sc) + " has no equilibrium"
 
 		np_arr = np.array(retArr)
-		params_labels=["Search cost", "Equilibrium price", "Utility", "Seller revenue", "optimal alpha"]
-
+		
 		#Write meta data
 		meta_data += "# " + str(params_labels) + "\r\n"
 
@@ -1375,18 +1561,22 @@ def do_plotSCtoMinAlphaInExponentialMech(distributions, for_cycles=False):
 		# plotThis1(title="Search cost to min alpha. dist=" + P.dist.WhoAmI(), plotArray=np_arr,params_labels=params_labels)
 		# plotThis(dist=dist, mech=mech, plotArray=retArr,X_axis_label="Search costs", Y_axis_label="Sellers prices")
 
-def do_plotSearchCostVsEqPrice(distributions, mechanisms, for_cycles=False):
-	print( "In do_plotSearchCostVsEqPrice")
+def do_plotSearchCostVsEqPrice(distributions, mechanisms, productionCosts, for_cycles=False): ### NEW PC
+	print "In do_plotSearchCostVsEqPrice"
 	for mechan in mechanisms:
-		print( "In Mechanism ")
-		print( mechan.WhoAmI())
+		print "In Mechanism "
+		print mechan.WhoAmI()
 		for distr in distributions:
 			#Empty profile
 			P = Profile(search_cost=0, p1_price=30, p2_price=30)
 
-			P.dist = distr
+ 			P.productionCosts = productionCosts ### NEW PC
 
-			supp_size = len(P.dist.Supp())
+ 			### NEW dist: set both to be the same for now
+			P.p1_dist = distr
+			P.p2_dist = distr
+
+			#supp_size = len(P.dist.Supp())
 
 			# starting_points = [ [P.dist.Supp()[supp_size / 10], P.dist.Supp()[supp_size / 10]], 
 			# 					[P.dist.Supp()[supp_size / 3], P.dist.Supp()[supp_size / 3]],
@@ -1395,16 +1585,32 @@ def do_plotSearchCostVsEqPrice(distributions, mechanisms, for_cycles=False):
 			# for [s1, s2] in starting_points:
 			# 	P.p1_price = s1
 			# 	P.p2_price = s2
+
+
+			### NEW plot PC
+			params_labels = []
+
 			if for_cycles:
 				#meta data
 				meta_data = "# Solution concept: Cycles \r\n"
+				params_labels=["Search cost", "Buyer average Utility", 
+							"Seller 1 average Revenue", "Seller 2 average Revenue", 
+							"Seller 1 average Price", "Seller 2 average Price", 
+							"Cycle length"] # , "Cycle description"
 			else:
 				meta_data = "# Solution concept: Equilibria \r\n"
+				if (productionCosts[0] == 0 and productionCosts[1] == 0):
+					params_labels=["Search cost", "Equilibrium price", "Utility", "Seller revenue"]
+				else:
+					params_labels=["Search cost", "Utility", "Seller 1 equilibrium Revenue", "Seller 2 equilibrium Revenue", 
+							"Seller 1 equilibrium Price", "Seller 2 equilibrium Price"]
+
 
 			# meta_data = "# Starting point: " + str(s1) + ", " + str(s2) + "\r\n"
 
 			#Write distribution to meta data
-			meta_data += "# Distribution:" + P.dist.WhoAmI() + "\r\n"
+			### NEW dist: for now assume same distribution will be used
+			meta_data += "# Distribution:" + P.p1_dist.WhoAmI() + "\r\n"
 
 			#Define mechanism 
 			# P.mechanism = Low_first_mechanism()
@@ -1417,20 +1623,24 @@ def do_plotSearchCostVsEqPrice(distributions, mechanisms, for_cycles=False):
 			#Write distribution to meta data
 			meta_data += "# Mechanism:" + P.mechanism.WhoAmI() + "\r\n"
 
+			### NEW plot PC
+			meta_data += "# Production Costs: seller 1 = " + str(productionCosts[0]) + "; seller 2 = " + str(productionCosts[1]) + "\r\n"
+				
 			#Print start state
-			print( "Start profile: \n" + P.WhoAmI())
+			print "Start profile: \n" + P.WhoAmI()
 
 			#Returns for each search cost, a pair of equilibrium prices if exist, and the buyer utility at equilibrium
 			retArr = []
 			shift = 0
 
 			#For each search cost
-			real_step_num = float(P.dist.Expectation()) / (step_num + mechan.shift)
-			for sc in frange(0, int(P.dist.Expectation()) - 1, real_step_num):
+			### NEW dist: for now assume same distribution will be used
+			real_step_num = float(P.p1_dist.Expectation()) / (step_num + mechan.shift)
+			for sc in frange(0, int(P.p1_dist.Expectation()) - 1, real_step_num):
 				#Set search cost (carefully!)
 				P.SetSearchCost(sc)
-				print( "----------------")
-				print( "Start state:\n" + P.WhoAmI())
+				print "----------------"
+				print "Start state:\n" + P.WhoAmI()
 
 
 				if for_cycles:
@@ -1438,7 +1648,7 @@ def do_plotSearchCostVsEqPrice(distributions, mechanisms, for_cycles=False):
 					if rv == "cycle":
 						[ave_bu, ave_p1_rev, ave_p2_rev, ave_pr1, ave_pr2, tot, cycle_str] = outcome
 						# [cycle_ave_bu, cyc_len, cycle_str] = outcome
-						print( "cycle length:" + str(tot) )
+						print "cycle length:" + str(tot) 
 
 						# #All data
 						retArr.append([sc, ave_bu, ave_p1_rev, ave_p2_rev, ave_pr1, ave_pr2, tot]) # , cycle_str
@@ -1448,26 +1658,28 @@ def do_plotSearchCostVsEqPrice(distributions, mechanisms, for_cycles=False):
 					#Run best response dynamics
 					[rv, end_profile] = BRD(P)
 
-					#If BRD returned a symmetric equilibrium
-					if not end_profile.IsEmpty() and end_profile.p1_price == end_profile.p2_price: #[pX_id, pX_price, pY_id, pY_price]
+					#If BRD returned equilibrium
+					if not end_profile.IsEmpty() and rv == "profile": ### NEW plot PC: sometimes reaches equilibrium and prices aren't the same
+					#and end_profile.p1_price == end_profile.p2_price: #[pX_id, pX_price, pY_id, pY_price]
 						[bu, p1_rev, p2_rev] = studyState(end_profile)
-						if p1_rev != p2_rev:
-							print( end_profile.WhoAmI())
-							print( "revenues" + str(p1_rev) + ", " + str(p2_rev))
-							raise NotImplementedError("Prices should be equal")
-						#All data
-						retArr.append([sc, end_profile.p1_price, bu, p1_rev])
-					print( "----------------")
+
+
+						### NEW plot PC: if symmetric equilibrium/original case
+						if (productionCosts[0] == 0 and productionCosts[1] == 0):
+							if p1_rev != p2_rev and end_profile.p1_price == end_profile.p2_price: # not symmetric equilibrium
+								print end_profile.WhoAmI()
+								print "revenues" + str(p1_rev) + ", " + str(p2_rev)
+								raise NotImplementedError("Prices should be equal")
+							elif p1_rev == p2_rev and end_profile.p1_price == end_profile.p2_price: # symmetric equilibrium
+								#All data
+								retArr.append([sc, end_profile.p1_price, bu, p1_rev])
+
+						else:
+							retArr.append([sc, bu, p1_rev, p2_rev, end_profile.p1_price, end_profile.p2_price])
+					print "----------------"
 
 			np_arr = np.array(retArr)
-			params_labels = []
-			if for_cycles:
-				params_labels=["Search cost", "Buyer average Utility", 
-							"Seller 1 average Revenue", "Seller 2 average Revenue", 
-							"Seller 1 average Price", "Seller 2 average Price", 
-							"Cycle length"] # , "Cycle description"
-			else:
-				params_labels=["Search cost", "Equilibrium price", "Utility", "Seller revenue"]
+			
 			
 			#Write meta data
 			meta_data += "# " + str(params_labels) + "\r\n"
@@ -1516,11 +1728,11 @@ def extract_data_new(list_of_file_IDs):
 					opt_par_file=opt_par_file):
 					cur_data = []
 					print
-					print( "filename: " + filename)
-					print( "mechanism:" + mechanism)
-					print( "mech pars:" + str(mech_pars))
-					print( "headers: " + str(headers))
-					print()
+					print "filename: " + filename
+					print "mechanism:" + mechanism
+					print "mech pars:" + str(mech_pars)
+	 				print "headers: " +str(headers)
+					print 
 					headers_to_plot_indices = [headers.index(header) for header in file_ID.headers_to_plot]
 					# print headers_to_plot_indices
 					
@@ -1533,7 +1745,7 @@ def extract_data_new(list_of_file_IDs):
 						all_data.append([distribution, [mechanism, mech_pars], file_ID.headers_to_plot, good_cols])
 	return all_data
 
-#TODO: describe output
+
 def extract_data(dist_identifier, cycle_or_equilibrium, is_opt_par_file, headers_to_plot, mechanism_identifier=all_mechanism_identifiers):
 	all_data = []
 	#Assuming os is in the right directory
@@ -1550,11 +1762,11 @@ def extract_data(dist_identifier, cycle_or_equilibrium, is_opt_par_file, headers
 				):
 				cur_data = []
 				print
-				print( "filename: " + filename)
-				print( "mechanism:" + mechanism)
-				print( "mech pars:" + str(mech_pars))
-				print( "headers: " +str(headers))
-				print() 
+				print "filename: " + filename
+				print "mechanism:" + mechanism
+				print "mech pars:" + str(mech_pars)
+ 				print "headers: " +str(headers)
+				print 
 				headers_to_plot_indices = [headers.index(header) for header in headers_to_plot]
 				# print headers_to_plot_indices
 				
@@ -1574,8 +1786,11 @@ mech_marker ={"LF" : "o", "Exponential" : "v", "Threshold" : '^', "Uniform Rando
 
 num_to_mech = {0 : "Uniform Random", 1 : "Exponential", 2 : "Threshold", 3 : "A"   }
 
+### NEW plot PC
+mech_color_2 = {"LF" : "red", "Exponential" : "cyan" , "Threshold" : "magenta" , "Uniform Random" : "lawngreen"}# , "B" : "brown"  
+
 #Plot_cap = percentage (from 0 to 1) of search costs you want to draw
-def plot_new(plthandler, all_data, plot_cap, exclude_mechs=[], expressive_label=False):
+def plot_new(plthandler, all_data, plot_cap, exclude_mechs=[], expressive_label=False, prodCost=0): ### NEW plot PC
 	#plot cycles data
 	for idx1, [distribution, [mechanism, mech_pars], headers_to_plot, good_cols] in enumerate(all_data):
 		if not (mechanism in exclude_mechs):
@@ -1587,23 +1802,36 @@ def plot_new(plthandler, all_data, plot_cap, exclude_mechs=[], expressive_label=
 			if expressive_label:
 				set_color = mech_color[num_to_mech[idx1]]
 				set_marker = mech_marker[num_to_mech[idx1]]
-				for key, value in mech_pars.items():
+				for key, value in mech_pars.iteritems():
 					set_label += " " + key + "=" + value
 
 			#First header is always search cost
+			# lab = header label
 			for (idx, lab) in enumerate(headers_to_plot[1:]):
 				search_costs = good_cols[:,0]
-				other_column = good_cols[:,idx+1] 
-				cap = int(len(search_costs) * plot_cap) 
-				plthandler.plot(search_costs[:cap], other_column[:cap], 
-					label=set_label, 
-					color=set_color,
-					marker=set_marker, 
-					linestyle="None")
+				other_column = good_cols[:,idx+1]
+				cap = int(len(search_costs) * plot_cap)
+
+				### NEW plot PC
+				if "Seller 1 equilibrium Revenue" in headers_to_plot or "Seller 1 equilibrium Price" in headers_to_plot:
+					# need different colors
+					if lab == "Seller 2 equilibrium Revenue" or lab == "Seller 2 equilibrium Price":
+						set_color = mech_color_2[mechanism]
+					plthandler.plot(search_costs[:cap], other_column[:cap], 
+						label=mechanism + ": " + lab[0:8], 
+						color=set_color,
+						marker=set_marker, 
+						linestyle="None")
+				else:
+					plthandler.plot(search_costs[:cap], other_column[:cap], 
+						label=set_label, 
+						color=set_color,
+						marker=set_marker, 
+						linestyle="None")
 
 
 
-def comp_social_welfare(dist_identifier):
+def comp_social_welfare(dist_identifier, prodCost): ### NEW plot PC: prodCost = 1 then have non-zero production costs
 
 	fig1 = plt.figure()
 	fig1.canvas.set_window_title("social welfare" + " , " + dist_identifier)
@@ -1622,7 +1850,7 @@ def comp_social_welfare(dist_identifier):
 
 	#Create average social welfare
 	for [distribution, [mechanism, mech_pars], headers_to_plot, good_cols] in all_cyc_data:
-		print( "mech: " + mechanism)
+		print "mech: " + mechanism
 		# print good_cols
 		#sw_cols = list of [sc, sw]
 		#sw = bau + p1_rev + p2_rev
@@ -1637,7 +1865,12 @@ def comp_social_welfare(dist_identifier):
 	cycle_or_equilibrium = "Equilibria"
 	#Search cost should always appear
 	#Mechanisms with optimal parameter (Threshold, alpha)
-	headers_to_plot = ["Search cost", "Utility", "Seller revenue"] 
+	### NEW plot PC
+	if prodCost == 0:
+		headers_to_plot = ["Search cost", "Utility", "Seller revenue"]
+	else:
+		headers_to_plot = ["Search cost", "Utility", "Seller 1 equilibrium Revenue", "Seller 2 equilibrium Revenue"]
+		
 	all_eq_data = extract_data(dist_identifier=dist_identifier, 
 				cycle_or_equilibrium=cycle_or_equilibrium, 
 				is_opt_par_file=True,
@@ -1652,7 +1885,12 @@ def comp_social_welfare(dist_identifier):
 		# print good_cols
 		#sw_cols = list of [sc, sw]
 		#sw = bau + p1_rev + p2_rev
-		np_sw = np.array([ [sc, bu + 2 * p1_rev]  for [sc, bu, p1_rev] in good_cols])
+
+		### NEW plot PC
+		if prodCost == 0:
+			np_sw = np.array([ [sc, bu + 2 * p1_rev]  for [sc, bu, p1_rev] in good_cols])
+		else:
+			np_sw = np.array([ [sc, bu + p1_rev + p2_rev]  for [sc, bu, p1_rev, p2_rev] in good_cols])
 		all_eq_sw.append([distribution, [mechanism, mech_pars], ["Search cost", "Social Welfare"], np_sw])
 
 
@@ -1674,14 +1912,19 @@ def comp_social_welfare(dist_identifier):
 		# print good_cols
 		#sw_cols = list of [sc, sw]
 		#sw = bau + p1_rev + p2_rev
-		np_sw = np.array([ [sc, bu + 2 * p1_rev]  for [sc, bu, p1_rev] in good_cols])
+
+		### NEW plot PC
+		if prodCost == 0:
+			np_sw = np.array([ [sc, bu + 2 * p1_rev]  for [sc, bu, p1_rev] in good_cols])
+		else:
+			np_sw = np.array([ [sc, bu + p1_rev + p2_rev]  for [sc, bu, p1_rev, p2_rev] in good_cols])
 		all_eq_sw.append([distribution, [mechanism, mech_pars], ["Search cost", "Social Welfare"], np_sw])
 
 
 	plot_new(plthandler=plt, all_data=all_eq_sw, plot_cap=1)
 
 
-
+	legend_loc=1 # top right
 	plt.legend(loc=legend_loc, prop={'size': legend_size})
 	plt.xlabel("Search cost")
 	plt.show()
@@ -1771,7 +2014,7 @@ def comp_utility(dist_identifier, plot_cap=1):
 	headers_to_plot = ["Search cost", "Utility"]
 	all_eq_data = extract_data(dist_identifier=dist_identifier, 
 			cycle_or_equilibrium=cycle_or_equilibrium, 
-			is_opt_par_file=True,
+			is_opt_par_file=False,
 			headers_to_plot=headers_to_plot)
 
 	fig1 = plt.figure()
@@ -1780,12 +2023,21 @@ def comp_utility(dist_identifier, plot_cap=1):
 	plot_new(plthandler=plt, all_data=all_cyc_data, plot_cap=plot_cap)
 	plot_new(plthandler=plt, all_data=all_eq_data, exclude_mechs=["LF"], plot_cap=plot_cap)
 
+	# plot equilibrium threshold and exponential mechanisms
+	cycle_or_equilibrium = "Equilibria"
+	headers_to_plot = ["Search cost", "Utility"]
+	all_eq_data = extract_data(dist_identifier=dist_identifier, 
+			cycle_or_equilibrium=cycle_or_equilibrium, 
+			is_opt_par_file=True,
+			headers_to_plot=headers_to_plot)
+	plot_new(plthandler=plt, all_data=all_eq_data, exclude_mechs=[], plot_cap=plot_cap)
+
 	plt.legend(loc=legend_loc, prop={'size': legend_size})
 	plt.xlabel("Search cost")
 	plt.show()
 
 
-def comp_eq_price(dist_identifier, plot_cap=1):
+def comp_eq_price(dist_identifier, prodCost, plot_cap=1): ### NEW plot PC: prodCost = 1 then have non-zero production costs
 	cycle_or_equilibrium = "Cycles"
 	headers_to_plot = ["Search cost", "Seller 1 average Price", "Seller 2 average Price"] #
 	all_cyc_data = extract_data(dist_identifier=dist_identifier, 
@@ -1802,7 +2054,13 @@ def comp_eq_price(dist_identifier, plot_cap=1):
 
 
 	cycle_or_equilibrium = "Equilibria"
-	headers_to_plot = ["Search cost", "Equilibrium price"]
+
+	### NEW plot PC
+	if prodCost == 0:
+		headers_to_plot = ["Search cost", "Equilibrium price"]
+	else:
+		headers_to_plot = ["Search cost", "Seller 1 equilibrium Price", "Seller 2 equilibrium Price"]
+
 	all_eq_data = extract_data(dist_identifier=dist_identifier, 
 		cycle_or_equilibrium=cycle_or_equilibrium, 
 		is_opt_par_file=True,
@@ -1832,7 +2090,7 @@ def comp_eq_price(dist_identifier, plot_cap=1):
 
 	fig1 = plt.figure()
 	plt.margins(0.02)
-	fig1.canvas.set_window_title(headers_to_plot[1] + " , " + dist_identifier)
+	fig1.canvas.set_window_title("Equilibrium price" + " , " + dist_identifier) ### NEW plot PC
 
 	plot_new(plthandler=plt, all_data=all_cyc_pr, plot_cap=plot_cap)
 	plot_new(plthandler=plt, all_data=all_eq_data, exclude_mechs=["LF"], plot_cap=plot_cap)
@@ -1844,7 +2102,7 @@ def comp_eq_price(dist_identifier, plot_cap=1):
 
 
 
-def comp_seller_revenue(dist_identifier, plot_cap=1):
+def comp_seller_revenue(dist_identifier, prodCost, plot_cap=1): ### NEW plot PC: prodCost = 1 then have non-zero production costs
 	cycle_or_equilibrium = "Cycles"
 	headers_to_plot = ["Search cost", "Seller 1 average Revenue", "Seller 2 average Revenue"] #
 	all_cyc_data = extract_data(dist_identifier=dist_identifier, 
@@ -1862,17 +2120,30 @@ def comp_seller_revenue(dist_identifier, plot_cap=1):
 
 
 	cycle_or_equilibrium = "Equilibria"
-	headers_to_plot = ["Search cost", "Seller revenue"]
+	### NEW plot PC
+	if prodCost == 0:
+		headers_to_plot = ["Search cost", "Seller revenue"]
+	else:
+		headers_to_plot = ["Search cost", "Seller 1 equilibrium Revenue", "Seller 2 equilibrium Revenue"]
+
+	all_eq_data = extract_data(dist_identifier=dist_identifier, 
+		cycle_or_equilibrium=cycle_or_equilibrium, 
+		is_opt_par_file=False,
+		headers_to_plot=headers_to_plot)
+
+	fig1 = plt.figure()
+	fig1.canvas.set_window_title("Seller revenue" + " , " + dist_identifier) ### NEW plot PC
+
+	plot_new(plthandler=plt, all_data=all_cyc_rev, plot_cap=plot_cap)
+	plot_new(plthandler=plt, all_data=all_eq_data, exclude_mechs=["LF"], plot_cap=plot_cap, prodCost=prodCost)
+
+	# plot threshold and exponential equilibrium
 	all_eq_data = extract_data(dist_identifier=dist_identifier, 
 		cycle_or_equilibrium=cycle_or_equilibrium, 
 		is_opt_par_file=True,
 		headers_to_plot=headers_to_plot)
 
-	fig1 = plt.figure()
-	fig1.canvas.set_window_title(headers_to_plot[1] + " , " + dist_identifier)
-
-	plot_new(plthandler=plt, all_data=all_cyc_rev, plot_cap=plot_cap)
-	plot_new(plthandler=plt, all_data=all_eq_data, exclude_mechs=["LF"], plot_cap=plot_cap)
+	plot_new(plthandler=plt, all_data=all_eq_data, exclude_mechs=[], plot_cap=plot_cap, prodCost=prodCost)
 
 	plt.legend(loc=legend_loc, prop={'size': legend_size})
 	plt.xlabel("Search cost")
@@ -1922,25 +2193,25 @@ legend_loc=7 # center right
 # legend_loc=3 # bottom left
 # legend_loc=9 # top center
 
-def compare_mechanisms():
+def compare_mechanisms(prodCost=0): ### NEW plot PC: prodCost = 1 then have non-zero production costs
 
 	# cycle_or_equilibrium = "Cycles"
 	dist_identifier = "Integer uniform distribution, low=1,  high=101"
 	# dist_identifier = "Beta distribution, parameter=0.5,0.5,100"	
 	# dist_identifier = "Beta distribution, parameter=5,1,100"
 	# dist_identifier = "Beta distribution, parameter=1,3,100"		
-	# dist_identifier = "Beta distribution, parameter=2,2,210"
+	#dist_identifier = "Beta distribution, parameter=2,2,210"
 	# dist_identifier = "Beta distribution, parameter=2,5,130"
 	# dist_identifier = "Equal revenue distribution, precision=200"
 	# dist_identifier = "Geometric distribution, parameter=0.01, precision=500"
 	# dist_identifier = "Almost Equal revenue distribution, precision=300"
 
-	# comp_social_welfare(dist_identifier=dist_identifier)
+	comp_social_welfare(dist_identifier=dist_identifier, prodCost=prodCost)
 	# return
 
-	# comp_eq_price(dist_identifier=dist_identifier)
+	comp_eq_price(dist_identifier=dist_identifier, prodCost=prodCost)
 
-	# comp_seller_revenue(dist_identifier=dist_identifier)
+	comp_seller_revenue(dist_identifier=dist_identifier, prodCost=prodCost)
 
 	comp_utility(dist_identifier=dist_identifier)
 	# return
@@ -1957,8 +2228,7 @@ def compare_mechanisms():
 
 
 def main():
-
-	#Input
+	#Input (use one of the following flags on the command line)
 	parser = argparse.ArgumentParser(description='Consumer search simulation')
 	parser.add_argument('-r','--reservePrice', action="store_true", help='run res_price', required=False)
 	parser.add_argument('-inFile','--inFile', dest="file_to_plot", help='plot this file', required=False)
@@ -1996,63 +2266,77 @@ def main():
 					]
 
 	#The mechanisms generally at interest for sc versus price
-	mechanisms = [u_random_mechanism()] # Low_first_mechanism(), 
+	mechanisms = [Low_first_mechanism(), u_random_mechanism()]
+	#mechanisms = [u_random_mechanism()]
+
+	productionCosts = [0,0] ### NEW PC
+
 #-----
 	if args['plotFile']:
-		print( "file to plot:" + args['file_to_plot'])
+		print "file to plot:" + args['file_to_plot']
 		plotFile(filename=args['file_to_plot'])
 
 	if args['reservePrice']:
-		print( "Reservation price: " + str(res_price(dist=dist, search_cost=search_cost)))
+		print "Reservation price: " + str(res_price(dist=dist, search_cost=search_cost))
 
 # 
 	if args['test']:
 		#Empty profile
 		P = Profile()
 
-		#meta data
+		#meta data is what will be printed to an output file
 		meta_data = "" 
 
 		#Define search cost
 		P.SetSearchCost(35)
 
-		#Write search cost to meta data
-		meta_data += "# search cost = 35 \r\n"
+		### NEW PC
+		P.productionCosts = [0, 0]
 
-		#Define setting  
-		P.dist = int_uniform_dist(1, 101)
-		# P.dist = geometric_dist(0.01, 400)
-		# P.dist = beta_dist(2, 5, 100)
-		# P.dist = beta_dist(5, 1, 100)
-		# P.dist = almost_equal_revenue_dist(1000)
-		# P.dist =  equal_revenue_dist(200)
+		#Write search cost to meta data
+		meta_data += "# search cost =  \r\n"
+
+		#Define setting (uncomment the distribution you want to use)
+		#P.dist = int_uniform_dist(1, 101)
+		#P.dist = int_uniform_dist(1, 11)
+		#P.dist = geometric_dist(0.01, 400)
+		#P.dist = beta_dist(2, 5, 100)
+		#P.dist = beta_dist(5, 1, 100)
+		#P.dist = almost_equal_revenue_dist(1000)
+		#P.dist =  equal_revenue_dist(200)
 
 		# print str(dist.Get())
+
+		### NEW dist
+		P.p1_dist = int_uniform_dist(1, 101)
+		P.p2_dist = int_uniform_dist(1, 101)
 		
 		#Write distribution to meta data
-		meta_data += "# Distribution:" + P.dist.WhoAmI() + "\r\n"
+		### NEW dist
+		meta_data += "# p1 Distribution:" + P.p1_dist.WhoAmI() + "\r\n"
+		meta_data += "# p2 Distribution:" + P.p2_dist.WhoAmI() + "\r\n"
 
 		#Define starting state
 		P.p1_price=0
 		P.p2_price=0
 
-		#Define mechanism 
-		# P.mechanism = Low_first_mechanism()
-		# P.mechanism = weighted_random_mechanism(0.7, 0.3)
-		# P.mechanism = weighted_random_mechanism(0.5, 0.5)
-		P.mechanism = u_random_mechanism()
-		# P.mechanism = threshold_mechanism(40)
-		# P.mechanism = exponential_mechanism(-0.4)
+		#Define mechanism (uncomment the mechanism you want to use)
+		#P.mechanism = Low_first_mechanism()
+		#P.mechanism = weighted_random_mechanism(0.7, 0.3)
+		#P.mechanism = weighted_random_mechanism(0.5, 0.5)
+		#P.mechanism = u_random_mechanism()
+		P.mechanism = threshold_mechanism(40)
+		#P.mechanism = exponential_mechanism(-0.4)
 
 		#Write distribution to meta data
 		meta_data += "# Mechanism:" + P.mechanism.WhoAmI() + "\r\n"
 
-		print( P.mechanism.WhoAmI())
+		print P.mechanism.WhoAmI()
 
 		#Print start state
-		print( "Start profile: \n" + P.WhoAmI())
+		print "Start profile: \n" + P.WhoAmI()
 
-		print( "Buyer utility at start profile: " + str(buyerUtility(P)))
+		print "Buyer utility at start profile: " + str(buyerUtility(P))
 
 		# #Compute reservation price
 		# r_price = res_price(dist=dist, search_cost=search_cost)
@@ -2063,11 +2347,11 @@ def main():
 		[rv, end_profile] = BRD(P, expressive=True)
 		if not end_profile.IsEmpty():
 			[bu, p1_rev, p2_rev] = studyState(end_profile)
-			print( "Equil. buyer utility: " + str(bu))
-			print( "Equi. p1 rev:" + str(p1_rev))
-			print( "Equi. p2 rev:" + str(p2_rev))
+			print "Equil. buyer utility: " + str(bu)
+			print "Equi. p1 rev:" + str(p1_rev)
+			print "Equi. p2 rev:" + str(p2_rev)
 		else: 
-			print( "No equilibrium!")
+			print "No equilibrium!"
 
 
 
@@ -2083,22 +2367,25 @@ def main():
 		# exp_spec_distributions = [int_uniform_dist(1, 101), geometric_dist(0.01, 400), beta_dist(5, 5, 100)]
 		# exp_mechanisms = [exponential_mechanism(-0.25), exponential_mechanism(-0.5), exponential_mechanism(-0.75)]
 
-
-		exp_spec_distributions = [int_uniform_dist(1, 101)] #beta_dist(2, 2, 210), beta_dist(2, 1, 210),   #geometric_dist(0.01, 500)  # beta_dist(2, 5, 130) # equal_revenue_dist(500)
+		exp_spec_distributions = [beta_dist(2, 2, 210)] #geometric_dist(0.01, 500) # int_uniform_dist(1, 101) # beta_dist(2, 5, 130) # equal_revenue_dist(500)
 		exp_mechanisms = [
 						u_random_mechanism(),
-						exponential_mechanism(-0.1), 
-						exponential_mechanism(-0.2),
+						Low_first_mechanism()
+						#exponential_mechanism(-0.1), 
+						#exponential_mechanism(-0.2),
 						# exponential_mechanism(-0.25),
-						exponential_mechanism(-0.3)
+						#exponential_mechanism(-0.3)
 						]
-		do_plotSearchCostVsEqPrice(distributions=exp_spec_distributions, mechanisms=exp_mechanisms, for_cycles=False)
+		### NEW PC
+		do_plotSearchCostVsEqPrice(distributions=exp_spec_distributions, mechanisms=exp_mechanisms, productionCosts=productionCosts, for_cycles=False)
 
 		# do_plotSearchCostVsEqPrice(distributions=testcase_distributions, mechanisms=mechanisms, for_cycles=True)
 	
 	if args['plotThresholdVsEqPrice']:
 		#Empty profile
 		P = Profile(search_cost=0, p1_price=0, p2_price=0)
+
+		P.productionCosts = productionCosts ### NEW PC
 
 		meta_data = ""
 		#Define distribution: equal weights for integers 
@@ -2131,12 +2418,12 @@ def main():
 			P.SetSearchCost(sc) 
 			#For each threshold
 			for threshold in frange(1, int(P.dist.Expectation())-1, P.dist.Expectation() / step_num):
-				print( "----------------")
+				print "----------------"
 				#Define mechanism 
 				P.mechanism = threshold_mechanism(threshold)
 
 				#Print start state
-				print( "Start profile: \n" + P.WhoAmI())
+				print "Start profile: \n" + P.WhoAmI()
 
 				#Run best response dynamics
 				[rv, end_profile] = BRD(P)
@@ -2146,15 +2433,16 @@ def main():
 					[bu, p1_rev, p2_rev] = studyState(end_profile)
 					#All data
 					retArr.append([sc, threshold, end_profile.p1_price, end_profile.p2_price, bu, p1_rev, p2_rev])
-				print( "----------------")
+				print "----------------"
 
 			if len(retArr) == len_retArr:
-				print( "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n no equilibrium at all!")
+				print "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n no equilibrium at all!"
+
 
 
 		np_arr = np.array(retArr)	
 		if np_arr.size == 0:
-			print( "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n no equilibrium at all!")
+			print "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n no equilibrium at all!"
 			return
 		params_labels=["Search cost", "Thresholds", "Eq price 1", "Eq price 2", "Utility", "rev 1", "rev 2"]
 
@@ -2165,40 +2453,40 @@ def main():
 		plotThis1(title="Threshold to stuff. " + P.mechanism.WhoAmI(), plotArray=np_arr,params_labels=params_labels)
 
 
-	if args['plotSCtoLowestPriceUsingThreshold']:
-		do_plotSCtoLowestPriceUsingThreshold(distributions=testcase_distributions)
+	if args['plotSCtoLowestPriceUsingThreshold']: ### NEW PC
+		do_plotSCtoLowestPriceUsingThreshold(distributions=testcase_distributions, productionCosts=productionCosts)
 
 
-	if args['plotSCtoMinAlphaInExponentialMech']:
-		do_plotSCtoMinAlphaInExponentialMech(distributions=testcase_distributions)
+	if args['plotSCtoMinAlphaInExponentialMech']: ### NEW PC
+		do_plotSCtoMinAlphaInExponentialMech(distributions=testcase_distributions, productionCosts=productionCosts)
 
 	if args['plotSCtoLFandUniformEquilibria']:
-		print( "\n\n\n\n do_plotSearchCostVsEqPrice FALSE\n\n\n\n")
-		do_plotSearchCostVsEqPrice(distributions=testcase_distributions, mechanisms=mechanisms, for_cycles=False)
+		print "\n\n\n\n do_plotSearchCostVsEqPrice FALSE\n\n\n\n"
+
+		### NEW PC
+		do_plotSearchCostVsEqPrice(distributions=testcase_distributions, mechanisms=mechanisms, productionCosts=productionCosts, for_cycles=False)
 
 	if args['plotSCtoLFandUniformCycles']:
 		# # # LF and uniform random (cycles)
-		print( "\n\n\n\n do_plotSearchCostVsEqPrice TRUE \n\n\n\n")
-		do_plotSearchCostVsEqPrice(distributions=testcase_distributions, mechanisms=mechanisms, for_cycles=True)
+		print "\n\n\n\n do_plotSearchCostVsEqPrice TRUE \n\n\n\n"
+
+		### NEW PC
+		do_plotSearchCostVsEqPrice(distributions=testcase_distributions, mechanisms=mechanisms, productionCosts=productionCosts, for_cycles=True)
 
 
-	if args['doAllRuns']:
+	if args['doAllRuns']: ### NEW PC
 		# # LF and uniform random (equilibria)
-		print( "\n\n\n\n do_plotSearchCostVsEqPrice FALSE\n\n\n\n")
-		print("Distributions:" + str(testcase_distributions)) 
-		print ("Mechanisms:" + str(mechanisms))
-		print("\n\n\n\n")
-
-		do_plotSearchCostVsEqPrice(distributions=testcase_distributions, mechanisms=mechanisms, for_cycles=False)
+		print "\n\n\n\n do_plotSearchCostVsEqPrice FALSE\n\n\n\n"
+		do_plotSearchCostVsEqPrice(distributions=testcase_distributions, mechanisms=mechanisms, productionCosts=productionCosts, for_cycles=False)
 		# # # LF and uniform random (cycles)
-		print( "\n\n\n\n do_plotSearchCostVsEqPrice TRUE \n\n\n\n")
-		do_plotSearchCostVsEqPrice(distributions=testcase_distributions, mechanisms=mechanisms, for_cycles=True)
+		print "\n\n\n\n do_plotSearchCostVsEqPrice TRUE \n\n\n\n"
+		do_plotSearchCostVsEqPrice(distributions=testcase_distributions, mechanisms=mechanisms, productionCosts=productionCosts, for_cycles=True)
 		#  # threshold
-		print( "\n\n\n\n do_plotSCtoLowestPriceUsingThreshold \n\n\n\n")
-		do_plotSCtoLowestPriceUsingThreshold(distributions=testcase_distributions)
+		print "\n\n\n\n do_plotSCtoLowestPriceUsingThreshold \n\n\n\n"
+		do_plotSCtoLowestPriceUsingThreshold(distributions=testcase_distributions, productionCosts=productionCosts)
 		# exponential
-		print( "\n\n\n\n do_plotSCtoMinAlphaInExponentialMech \n\n\n\n")
-		do_plotSCtoMinAlphaInExponentialMech(distributions=testcase_distributions)
+		print "\n\n\n\n do_plotSCtoMinAlphaInExponentialMech \n\n\n\n"
+		do_plotSCtoMinAlphaInExponentialMech(distributions=testcase_distributions, productionCosts=productionCosts)
 
 
 
@@ -2208,7 +2496,12 @@ def main():
 
 
 	if args['compareMechanisms']:
-		compare_mechanisms()
+		### NEW plot PC
+		if not(productionCosts[0] == 0 and productionCosts[1] == 0):
+			prodCost=1 # have non-zero production costs
+		else:
+			prodCost=0
+		compare_mechanisms(prodCost=prodCost)
 
 	# if args['plotSCtoMechanisms']:
 	# 	#Empty profile
@@ -2230,7 +2523,7 @@ def main():
 	# 	retArr = []
 
 	# 	#For each search cost
-	# 	for sc in frange(50, (int(P.dist.Expectation()) - 1), int(P.dist.Expectation()) - 1 / step_num):
+	# 	for sc in xrange(50, (int(P.dist.Expectation()) - 1), int(P.dist.Expectation()) - 1 / step_num):
 	# 		#Set search cost (carefully!)
 	# 		P.SetSearchCost(sc)
 
