@@ -13,6 +13,7 @@ import math
 import copy
 from scipy.special import btdtr
 import re
+import random ### NEW dist
 
 #---------------------------------------------------#
 #----------------Globals----------------------------#
@@ -302,8 +303,10 @@ class self_made_dist(Distribution):
 #---------------------------------------------------#
 
 class Mechanism:
-	def __init__(self, dist, search_cost):
-		self.dist = dist 
+	### NEW dist: added second distribution
+	def __init__(self, p1_dist, p2_dist, search_cost):
+		self.p1_dist = p1_dist
+		self.p2_dist = p2_dist
 		self.search_cost = search_cost
 
 	def WhoAmI(self):
@@ -320,7 +323,7 @@ class Mechanism:
 #Independent of distribution and search cost
 class Low_first_mechanism(Mechanism):
 	def __init__(self):
-		Mechanism.__init__(self, None, None)
+		Mechanism.__init__(self, None, None, None) ### NEW dist
 		self.shift = 13
 
 	def WhoAmI(self):
@@ -343,7 +346,7 @@ class Low_first_mechanism(Mechanism):
 #Independent of distribution and search cost
 class u_random_mechanism(Mechanism):
 	def __init__(self):
-		Mechanism.__init__(self, None, None)
+		Mechanism.__init__(self, None, None, None) ### NEW dist
 		self.shift = 10
 
 	def WhoAmI(self):
@@ -358,7 +361,7 @@ class u_random_mechanism(Mechanism):
 #Independent of distribution and search cost
 class weighted_random_mechanism(Mechanism):
 	def __init__(self, p1_weight, p2_weight):
-		Mechanism.__init__(self, None, None)
+		Mechanism.__init__(self, None, None, None) ### NEW dist
 		self.p1_weight = p1_weight
 		self.p2_weight = p2_weight
 
@@ -375,7 +378,7 @@ class weighted_random_mechanism(Mechanism):
 #Independent of distribution and search cost
 class threshold_mechanism(Mechanism):
 	def __init__(self, threshold):
-		Mechanism.__init__(self, None, None)
+		Mechanism.__init__(self, None, None, None) ### NEW dist
 		self.threshold = threshold
 		self.shift = 6
 
@@ -409,7 +412,7 @@ def taylor_exp(num):
 #Independent of distribution and search cost
 class exponential_mechanism(Mechanism):
 	def __init__(self, alpha):
-		Mechanism.__init__(self, None, None)
+		Mechanism.__init__(self, None, None, None) ### NEW dist
 		self.alpha = alpha
 		self.shift = 2
 
@@ -435,24 +438,32 @@ class exponential_mechanism(Mechanism):
 #---------------------------------------------------#
 
 class Profile():
-	def __init__(self, dist=None, search_cost=None, mechanism=None, p1_price=None, p2_price=None, productionCosts=None): ### NEW PC
-		self.dist = dist
+	### NEW dist
+	def __init__(self, p1_dist=None, p2_dist=None, search_cost=None, mechanism=None, p1_price=None, p2_price=None, productionCosts=None): ### NEW PC
+		self.p1_dist = p1_dist ### NEW dist
+		self.p2_dist = p2_dist
 		self.search_cost = search_cost
 		self.mechanism = None
 		self.p1_price = p1_price
 		self.p2_price = p2_price
-		self.r_price = None
+
+		self.p1_r_price = None ### NEW dist: two reservation prices now
+		self.p2_r_price = None
+
 		self.productionCosts = productionCosts ### NEW PC
 
 	def IsEmpty(self):
-		return self.dist == None
+		return ((self.p1_dist == None) or (self.p2_dist == None)) ### NEW dist
 
 	def WhoAmI(self):
 		retStr = ""
 		retStr += "search_cost=" + str(self.search_cost) + "\n" 
 		
-		if self.dist != None:
-			retStr += "dist=" + str(self.dist.WhoAmI()) + "\n" + "r_price=" + str(self.Res_price()) + "\n" 
+		### NEW dist
+		if self.p1_dist != None:
+			retStr += "p1_dist=" + str(self.p1_dist.WhoAmI()) + "\n" + "p1_r_price=" + str(self.Res_price_p1()) + "\n"
+		if self.p2_dist != None:
+			retStr += "p2_dist=" + str(self.p2_dist.WhoAmI()) + "\n" + "p2_r_price=" + str(self.Res_price_p2()) + "\n" 
 
 		if self.mechanism != None:
 			retStr += "mechanism=" + str(self.mechanism.WhoAmI()) + "\n"
@@ -464,29 +475,33 @@ class Profile():
 	#Careful when updating search cost!!
 	def SetSearchCost(self, sc):
 		self.search_cost = sc
-		self.r_price = None
+		
+		### NEW dist
+		self.p1_r_price = None
+		self.p2_r_price = None
 
 
 	#precision: accuracy of reservation price
-	def Res_price(self, rerun=False):
-		if self.r_price == None or rerun == True:
+	### NEW dist: reservation price for p1 distribution
+	def Res_price_p1(self, rerun=False):
+		if self.p1_r_price == None or rerun == True:
 			if self.search_cost == 0:
-				self.r_price = self.dist.Supp_max() + 1 
-				return self.r_price
+				self.p1_r_price = self.p1_dist.Supp_max() + 1 
+				return self.p1_r_price
 			#Check search cost validity
-			if self.dist.Expectation() < self.search_cost:
+			if self.p1_dist.Expectation() < self.search_cost:
 				print "Search cost too high"
-				print "E[dist] = " + str(self.dist.Expectation())
+				print "E[dist] = " + str(self.p1_dist.Expectation())
 				print "search cost = " + str(self.search_cost) 
 				raise NotImplementedError("Search cost too high")
 
 			#Check precision
-			if abs(self.dist.Expectation() - self.search_cost) < precision:
+			if abs(self.p1_dist.Expectation() - self.search_cost) < precision:
 				print "bad search cost! precision-wise"
 				return None
 
-			high = self.dist.Supp_max()
-			low = self.dist.Supp_min()
+			high = self.p1_dist.Supp_max()
+			low = self.p1_dist.Supp_min()
 			found = False 
 			#Find reservation price up to precision
 			while not found:
@@ -494,28 +509,70 @@ class Profile():
 
 				if cur - low < precision:
 					print "Search cost too high"
-					print "E[dist] = " + str(self.dist.Expectation())
+					print "E[dist] = " + str(self.p1_dist.Expectation())
 					print "search cost = " + str(self.search_cost) 
 					raise NotImplementedError("Search cost too high")
 				
-				E = expected_risk(self.dist, cur)
+				E = expected_risk(self.p1_dist, cur)
 				# print "E/c/h/l: " + str(E) + "/" + str(cur) + "/" + str(high) + "/" + str(low)
 				margin = E - self.search_cost
 				
 				if margin > precision:
 					low = cur
-					#print "low = " + str(low)
 				elif margin < -precision:
 					high = cur
-					#print "high = " + str(high)
 				else:
 					found = True
 					# print "Reservation price: " + str(cur) # + ",  h/l:" + str(high) + "/" + str(low)
-			self.r_price = cur
+			self.p1_r_price = cur
 
-		return self.r_price
+		return self.p1_r_price
 
+	### NEW dist: reservation price for p2 distribution
+	def Res_price_p2(self, rerun=False):
+		if self.p2_r_price == None or rerun == True:
+			if self.search_cost == 0:
+				self.p2_r_price = self.p2_dist.Supp_max() + 1 
+				return self.p2_r_price
+			#Check search cost validity
+			if self.p2_dist.Expectation() < self.search_cost:
+				print "Search cost too high"
+				print "E[dist] = " + str(self.p2_dist.Expectation())
+				print "search cost = " + str(self.search_cost) 
+				raise NotImplementedError("Search cost too high")
 
+			#Check precision
+			if abs(self.p2_dist.Expectation() - self.search_cost) < precision:
+				print "bad search cost! precision-wise"
+				return None
+
+			high = self.p2_dist.Supp_max()
+			low = self.p2_dist.Supp_min()
+			found = False 
+			#Find reservation price up to precision
+			while not found:
+				cur = (float(high) + low)/2
+
+				if cur - low < precision:
+					print "Search cost too high"
+					print "E[dist] = " + str(self.p2_dist.Expectation())
+					print "search cost = " + str(self.search_cost) 
+					raise NotImplementedError("Search cost too high")
+				
+				E = expected_risk(self.p2_dist, cur)
+				# print "E/c/h/l: " + str(E) + "/" + str(cur) + "/" + str(high) + "/" + str(low)
+				margin = E - self.search_cost
+				
+				if margin > precision:
+					low = cur
+				elif margin < -precision:
+					high = cur
+				else:
+					found = True
+					# print "Reservation price: " + str(cur) # + ",  h/l:" + str(high) + "/" + str(low)
+			self.p2_r_price = cur
+
+		return self.p2_r_price
 
 #computes E[(v-res_price)^+] for v <- dist 
 def expected_risk(dist, res_price):
@@ -575,79 +632,81 @@ def res_price(dist, search_cost):
 #-----Demand1 and Demand2 assume a Buy-Box slot -----------#
 #----------------------------------------------------------#
 
-def Demand1_ver_2(dist, res_price, my_price, competing_price):
+### NEW demand: easiest to follow version of the Demand function for BB slot
+# my_price is the price for the BB
+# competing_price is the price for the non-BB
+def Demand1_ver_3(dist_1, dist_2, res_price, my_price, competing_price): ### NEW dist: dist_1 = BB slot, dist_2 = Non-BB slot
 	demand = 0
-	#if the other seller never gets searched
-	if competing_price > res_price:
-		#Pr[v1 >= my_price]
-		return (1-dist.CDF(my_price))
-	
-	# value for me is so high that the other bidder doesn't get searched
-	demand += 1 - dist.CDF(res_price - competing_price + my_price)
-	
-	# the other seller gets searched but the buyer returns to me
-	for [val, prob] in dist.Get():
-		if val < my_price:
-			continue
-		elif val >= res_price - competing_price + my_price:
-			break
-		else:
-			demand += prob * dist.CDF(val - my_price + competing_price)
+
+	for [val1, prob1] in dist_1.Get(): # BB value
+		if val1 >= my_price: # only way to increase demand
+			if ((val1 - my_price) >= (res_price - competing_price)): # never check Non-BB slot
+				demand += prob1
+			else: # check Non-BB slot
+				for [val2, prob2] in dist_2.Get(): # non-BB value
+				# Tie (v1 - my_price = v2 - competing_price) is broken in favor of first slot
+					if ((val1 - my_price) >= (val2 - competing_price)):
+						demand += prob1 * prob2
+	#print "Demand1_ver_3 = " + str(demand)
 	return demand
 
-def Demand2_ver_2(dist, res_price, my_price, competing_price):
+### NEW demand: easiest to follow version of the Demand function for Non-BB slot
+# my_price is the price for the non-BB
+# competing_price is the price for the BB
+def Demand2_ver_3(dist_1, dist_2, res_price, my_price, competing_price): ### NEW dist: dist_2 = BB slot, dist_1 = Non-BB slot
 	demand = 0
-	# if I never get searched
+	#If my_price is too high to be searched
 	if my_price > res_price:
 		return 0
 
-	# if I get searched and the buyer chooses me
-	for [val, prob] in dist.Get():
-		if val >= res_price - my_price + competing_price:
-			break
-		elif val < competing_price:
-			demand += prob * (1 - dist.CDF(my_price))
-		else:
-			demand += prob * (1 - dist.CDF(val - competing_price + my_price))
-	
+	for [val1, prob1] in dist_2.Get():   # BB value
+		if ((val1 - competing_price) < (res_price - my_price)): # check Non-BB slot
+			for [val2, prob2] in dist_1.Get():  # non-BB value
+				if val2 >= my_price and ((val2 - my_price) >= (val1 - competing_price)):
+					demand += prob1 * prob2
+				
+	#print "Demand2_ver_3 = " + str(demand)
 	return demand
-
 
 #Returns demand function of Buy-Box slot
 #For v1, v2 <- dist
 #D_1(p|q) = \int_{0}^\infty \Pr[v1 - p > \max\{0,  \min \{r, v2\} -q \} ] dF(v2) 
-def Demand1(dist, res_price, my_price, competing_price):
+# my_price is the price for the BB
+# competing_price is the price for the non-BB
+def Demand1(dist_1, dist_2, res_price, my_price, competing_price): ### NEW dist: dist_1 = BB slot, dist_2 = Non-BB slot
 	demand = 0
 	#If other never gets searched
 	if competing_price > res_price:
 		#Pr[v1 >= my_price]
-		return (1-dist.CDF(my_price))
+		return (1-dist_1.CDF(my_price))
 
 	#Pr[v2 < competing_price] * Pr[v1 >= my_price]
 	#Seller 1 always selected (regardless of search)
-	demand += dist.CDF(competing_price) * (1-dist.CDF(my_price))
+	demand += dist_2.CDF(competing_price) * (1-dist_1.CDF(my_price))
 
 	# print "demand1 =  " + str(demand)
 
 	# integrate v2 from competing_price to res_price (Pr[v2] * Pr[v1 - my_price >= v2 - competing_price])
 	# I.e. Tie (v1 - my_price = v2 - competing_price) is broken in favor of first slot
 	# Seller 1 selected if beats seller 2
-	for [val, prob] in dist.Get():
+	for [val, prob] in dist_2.Get():
 		if val >= competing_price and val < res_price:
-			demand += (1 - dist.CDF(val - competing_price + my_price)) * prob
+			demand += (1 - dist_1.CDF(val - competing_price + my_price)) * prob
 			# print "demand1 =  " + str(demand)
 
 	#Pr[v2 >= res_price] * Pr[v1 - my_price >= res_price - competing_price ]
 	#seller 2 is not searched (because if searched then selected):
-	demand += (1 - dist.CDF(res_price)) * (1 - dist.CDF(res_price - competing_price + my_price))
-	# print "demand1 =  " + str(demand)
+	demand += (1 - dist_2.CDF(res_price)) * (1 - dist_1.CDF(res_price - competing_price + my_price))
+	#print "demand1 =  " + str(demand)
 	return demand
 
 
 #Returns demand function of non Buy-Box slot
 #For v_p, v_q <- dist
 #D_1(p|q) = \int_{0}^\infty \Pr[v_p - p > \max\{0,  \min \{r, v_q\} -q \} ] dF(v_q) 
-def Demand2(dist, res_price, my_price, competing_price):
+# my_price is the price for the non-BB
+# competing_price is the price for the BB
+def Demand2(dist_1, dist_2, res_price, my_price, competing_price): ### NEW dist: dist_2 = BB slot, dist_1 = Non-BB slot
 	#If my_price is too high to be searched
 	if my_price > res_price:
 		return 0
@@ -655,19 +714,19 @@ def Demand2(dist, res_price, my_price, competing_price):
 	demand = 0
 	#Pr[v1 < competing_price] * Pr[v2 >= my_price]
 	#Seller 2 always selected (because always searched and seller 1 has negative utility)
-	demand += dist.CDF(competing_price) * (1-dist.CDF(my_price))
+	demand += dist_2.CDF(competing_price) * (1-dist_1.CDF(my_price))
 	#print "demand2 =  " + str(demand)
 
 	#integrate v1 from competing_price to competing_price + res_price - my_price
-	for [val, prob] in dist.Get():
+	for [val, prob] in dist_2.Get():
 		# print str(val) + ":" + str(prob)
 		# print str(val) + ", " + str(competing_price) + ", " + str(res_price) + ", " + str(my_price)
 		if val >= competing_price and val <=res_price - my_price + competing_price:
 			# Pr[v = my_price + val - competing_price]
-			pr_eq =  dist.Pr.get(my_price + val - competing_price, 0)
+			pr_eq =  dist_1.Pr.get(my_price + val - competing_price, 0)
 			# Pr[my_value > my_price + min(res_price, cur) - competing_price] 
 			# I.e. Tie (my_value - my_price = val - competing_price) is broken in favor of first (the other) slot
-			demand += (1 - dist.CDF(my_price + val - competing_price) - pr_eq) * prob
+			demand += (1 - dist_1.CDF(my_price + val - competing_price) - pr_eq) * prob
 			#print "demand2 =  " + str(demand)
 	return demand
 
@@ -677,75 +736,101 @@ def Demand2(dist, res_price, my_price, competing_price):
 #--------------------------------------------------------------------------#
 
 #Returns demand of first slot (both slots have search cost)
-def Demand1NBB(dist, res_price, my_price, competing_price):
+### NEW dist: added second distribution and second reservation price
+# dist_1 = my distribution, dist_2 = competing seller distribution
+# res_price_1 = my reservation price, res_price_2 = competing seller's reservation price
+# my_price is in first slot, competing_price is in second slot
+def Demand1NBB(dist_1, dist_2, res_price_1, res_price_2, my_price, competing_price):
 	#If my_price is too high to be searched
-	if my_price > res_price:
+	if my_price > res_price_1:
 		return 0
-	#I'm searched 
-	return Demand1(dist=dist, res_price=res_price, my_price=my_price, competing_price=competing_price)
+	#I'm searched
+	return Demand1(dist_1=dist_1, dist_2=dist_2, res_price=res_price_2, my_price=my_price, competing_price=competing_price)
 
 #Returns demand of second slot (both slots have search cost)
-def Demand2NBB(dist, res_price, my_price, competing_price):
+### NEW dist: added second distribution and second reservation price
+# dist_1 = my distribution, dist_2 = competing seller distribution
+# res_price_1 = my reservation price, res_price_2 = competing seller's reservation price
+# my_price is in second slot, competing_price is in first slot
+def Demand2NBB(dist_1, dist_2, res_price_1, res_price_2, my_price, competing_price):
 	#If competing_price is too high to be searched and my price isn't
-	if competing_price > res_price and my_price <= res_price:
+	if competing_price > res_price_2 and my_price <= res_price_1:
 		#Pr[v2 >= my_price]
-		return (1 - dist.CDF(my_price))
+		return (1 - dist_1.CDF(my_price))
 
 	#First is searched 
-	return Demand2(dist=dist, res_price=res_price, my_price=my_price, competing_price=competing_price)
+	return Demand2(dist_1=dist_1, dist_2=dist_2, res_price=res_price_1, my_price=my_price, competing_price=competing_price)
 
 
 #Returns revenue of Buy-Box slot
-def Revenue1(dist, res_price, my_price, competing_price, productionCost): ### NEW PC
-	d = Demand1(dist=dist, res_price=res_price, my_price=my_price, competing_price=competing_price)
+### NEW dist: added second distribution
+def Revenue1(dist_1, dist_2, res_price, my_price, competing_price, productionCost): ### NEW PC
+	dd = Demand1_ver_3(dist_1=dist_1, dist_2=dist_2, res_price=res_price, my_price=my_price, competing_price=competing_price)
+	d = Demand1(dist_1=dist_1, dist_2=dist_2, res_price=res_price, my_price=my_price, competing_price=competing_price)
 	# print "demand1:" + str(d)
 	return ((my_price - productionCost) * d) # Demand1(dist=dist, res_price=res_price, my_price=my_price, competing_price=competing_price)
 
 
 #Returns revenue of non Buy-Box slot
-def Revenue2(dist, res_price, my_price, competing_price, productionCost): ### NEW PC
-	return ((my_price - productionCost) * Demand2(dist=dist, res_price=res_price, my_price=my_price, competing_price=competing_price))
+### NEW dist: added second distribution
+def Revenue2(dist_1, dist_2, res_price, my_price, competing_price, productionCost): ### NEW PC
+	dd = Demand2_ver_3(dist_1=dist_1, dist_2=dist_2, res_price=res_price, my_price=my_price, competing_price=competing_price)
+	return ((my_price - productionCost) * Demand2(dist_1=dist_1, dist_2=dist_2, res_price=res_price, my_price=my_price, competing_price=competing_price))
 
 #Returns revenue of first slot (no Buy-box)
-def Revenue1NBB(dist, res_price, my_price, competing_price, productionCost): ### NEW PC
-	return ((my_price - productionCost) * Demand1NBB(dist=dist, res_price=res_price, my_price=my_price, competing_price=competing_price))
+### NEW dist: added second distribution and second reservation price
+def Revenue1NBB(dist_1, dist_2, res_price_1, res_price_2, my_price, competing_price, productionCost): ### NEW PC
+	return ((my_price - productionCost) * Demand1NBB(dist_1=dist_1, dist_2=dist_2, res_price_1=res_price_1, res_price_2=res_price_2, my_price=my_price, competing_price=competing_price))
 
 
 #Returns revenue of second slot (no Buy-box)
-def Revenue2NBB(dist, res_price, my_price, competing_price, productionCost): ### NEW PC
-	return ((my_price - productionCost) * Demand2NBB(dist=dist, res_price=res_price, my_price=my_price, competing_price=competing_price))
+### NEW dist: added second distribution and second reservation price
+def Revenue2NBB(dist_1, dist_2, res_price_1, res_price_2, my_price, competing_price, productionCost): ### NEW PC
+	return ((my_price - productionCost) * Demand2NBB(dist_1=dist_1, dist_2=dist_2, res_price_1=res_price_1, res_price_2=res_price_2, my_price=my_price, competing_price=competing_price))
 
 #Expected revenue over distribution BuyBoxDist  
 def ExpectedRev(profile, my_id, my_price):
+	#Compute reservation price
+	### NEW dist: two reservation prices
+	p1_r_price = profile.Res_price_p1()
+	p2_r_price = profile.Res_price_p2()
+
 	#Set competing price and outcome
 	if my_id == 1:
 		competing_price = profile.p2_price
 		BuyBoxDist = profile.mechanism.BuyBoxWinner(p1_price=my_price, p2_price=profile.p2_price)
 		productionCost = profile.productionCosts[0] ### NEW PC
+		my_dist = profile.p1_dist ### NEW dist
+		compete_dist = profile.p2_dist ### NEW dist
+		my_r_price = p1_r_price ### NEW dist
+		compete_r_price = p2_r_price ### NEW dist
 	else:
 		competing_price = profile.p1_price
 		BuyBoxDist = profile.mechanism.BuyBoxWinner(p1_price=profile.p1_price, p2_price=my_price)
 		productionCost = profile.productionCosts[1] ### NEW PC
+		my_dist = profile.p2_dist ### NEW dist
+		compete_dist = profile.p1_dist ### NEW dist
+		my_r_price = p2_r_price ### NEW dist
+		compete_r_price = p1_r_price ### NEW dist
 
 	
 	# print "BBdist:"  + BuyBoxDist.WhoAmI()
 	# print "my price = " + str(my_price)
 	# print "competing_price=" + str(competing_price)
-	#Compute reservation price
-	r_price = profile.Res_price()
-	# print "res price: " + str(r_price)
+	
 #---------No Buy-Box slot:
+	### NEW dist: dist_1 = my distribution, dist_2 = competing seller distribution
+	### NEW dist: res_price_1 = my reservation price, res_price_2 = competing seller's reservation price
 	if BuyBoxDist.IsEmpty():
 		if my_price < competing_price:
-			return Revenue1NBB(dist=profile.dist, res_price=r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost) ### NEW PC
+			return Revenue1NBB(dist_1=my_dist, dist_2=compete_dist, res_price_1=my_r_price, res_price_2=compete_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost) ### NEW PC
 		elif competing_price < my_price:
-			return Revenue2NBB(dist=profile.dist, res_price=r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost) ### NEW PC
+			return Revenue2NBB(dist_1=my_dist, dist_2=compete_dist, res_price_1=my_r_price, res_price_2=compete_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost) ### NEW PC
 		#buyer selects uniformly at random
 		else:
-			return (0.5 * Revenue1NBB(dist=profile.dist, res_price=r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost) ### NEW PC
+			return (0.5 * Revenue1NBB(dist_1=my_dist, dist_2=compete_dist, res_price_1=my_r_price, res_price_2=compete_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost) ### NEW PC
 				   +
-				   0.5 * Revenue2NBB(dist=profile.dist, res_price=r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost)) ### NEW PC
-
+				   0.5 * Revenue2NBB(dist_1=my_dist, dist_2=compete_dist, res_price_1=my_r_price, res_price_2=compete_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost)) ### NEW PC
 
 
 
@@ -759,24 +844,38 @@ def ExpectedRev(profile, my_id, my_price):
 	for [winner, prob] in BuyBoxDist.Get():
 		if winner == my_id:
 			# print "111prob:" + str(prob)
-			retRev += prob * Revenue1(dist=profile.dist, res_price=r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost) ### NEW PC
+			### NEW dist: use BB distribution and Non-BB reservation price
+			### NEW PC
+			if winner == 1:
+				### NEW dist: dist_1 = BB slot, dist_2 = Non-BB slot
+				retRev += prob * Revenue1(dist_1=profile.p1_dist, dist_2=profile.p2_dist, res_price=p2_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost)
+			else:
+				### NEW dist: dist_1 = BB slot, dist_2 = Non-BB slot
+				retRev += prob * Revenue1(dist_1=profile.p2_dist, dist_2=profile.p1_dist, res_price=p1_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost)
 			# print "retRev 1: " + str(retRev)
 		#assuming sellers ids are {1, 2}
 		elif winner == 3 - my_id:
-			retRev += prob * Revenue2(dist=profile.dist, res_price=r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost) ### NEW PC
+			### NEW dist: use Non-BB reservation price
+			### NEW PC
+			if winner == 1:
+				### NEW dist: dist_2 = BB slot, dist_1 = Non-BB slot
+				retRev += prob * Revenue2(dist_1=profile.p2_dist, dist_2=profile.p1_dist, res_price=p2_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost)
+			else:
+				### NEW dist: dist_2 = BB slot, dist_1 = Non-BB slot
+				retRev += prob * Revenue2(dist_1=profile.p1_dist, dist_2=profile.p2_dist, res_price=p1_r_price, my_price=my_price, competing_price=competing_price, productionCost=productionCost)
 			# print "retRev 2: " + str(retRev)
 		else:
 			print "Wrong format of BuyBoxDist!!"
 	return retRev
 
 #Buyer utility when Buy-box seller price is BB_price (etc.) 
-def BUwithOrder(dist, search_cost, BB_price, NBB_price):
+def BUwithOrder(dist_1, dist_2, search_cost, BB_price, NBB_price): ### NEW dist: dist_1 = BB slot, dist_2 = Non-BB slot
 	#Compute reservation price
-	r_price = res_price(dist=dist, search_cost=search_cost)
+	r_price = res_price(dist=dist_2, search_cost=search_cost) ### NEW dist: use Non-BB dist to get reservation price
 
 	tot_util = 0
 	#For each match value with Buy-Box seller
-	for [v1, p1] in dist.Get():
+	for [v1, p1] in dist_1.Get(): ### NEW dist
 		# print v1
 		#Match first immediately 
 		if v1- BB_price > max(0, r_price - NBB_price):
@@ -788,7 +887,7 @@ def BUwithOrder(dist, search_cost, BB_price, NBB_price):
 			tot_util -= p1 * search_cost
 
 			#Match highest (if any)
-			for [v2, p2] in dist.Get():
+			for [v2, p2] in dist_2.Get(): ### NEW dist
 				tot_util += p1 * p2 * max(v1 - BB_price, v2 - NBB_price, 0)
 		
 		# #No match case
@@ -799,13 +898,14 @@ def BUwithOrder(dist, search_cost, BB_price, NBB_price):
 	return tot_util
 
 #Buyer utility when there is no Buy-box 
-def BU_NBB_withOrder(dist, search_cost, first_price, second_price):
+### NEW dist: dist_1 = first slot, dist_2 = second slot
+def BU_NBB_withOrder(dist_1, dist_2, search_cost, first_price, second_price):
 	#Compute reservation price
-	r_price = res_price(dist=dist, search_cost=search_cost)
+	r_price = res_price(dist=dist_2, search_cost=search_cost) ### NEW dist: use second slot to get reservation price
 
 	tot_util = 0
 	#For each match value with first seller
-	for [v1, p1] in dist.Get():
+	for [v1, p1] in dist_1.Get(): ### NEW dist
 		#Pay search cost for first seller
 		tot_util -= p1 * search_cost
 
@@ -820,7 +920,7 @@ def BU_NBB_withOrder(dist, search_cost, first_price, second_price):
 			tot_util -= p1 * search_cost
 
 			#Match highest 
-			for [v2, p2] in dist.Get():
+			for [v2, p2] in dist_2.Get(): ### NEW dist
 				tot_util += p1 * p2 * max(v1 - first_price, v2 - second_price, 0)
 	# print "tot util: " + tot_util
 	return tot_util
@@ -836,9 +936,23 @@ def buyerUtility(profile):
 
 	#If no buy-box
 	if buyBoxDist.IsEmpty():
-		return BU_NBB_withOrder(dist=profile.dist, search_cost=profile.search_cost, 
-								first_price= min(profile.p1_price, profile.p2_price),
-								second_price=max(profile.p1_price, profile.p2_price))
+		### NEW dist: determine first slot and second slot
+		# dist_1 = first slot, dist_2 = second slot
+		# first slot goes to seller with lowest price
+		if profile.p1_price < profile.p2_price: # seller 1 gets first slot
+			return BU_NBB_withOrder(dist_1=profile.p1_dist, dist_2=profile.p2_dist, search_cost=profile.search_cost, 
+								first_price=profile.p1_price, second_price=profile.p2_price)
+		elif profile.p2_price < profile.p1_price: # seller 2 gets first slot
+			return BU_NBB_withOrder(dist_1=profile.p2_dist, dist_2=profile.p1_dist, search_cost=profile.search_cost, 
+								first_price=profile.p2_price, second_price=profile.p1_price)
+		else: # tie; sellers have same price
+			randNum = random.randint(1,2) # randomly pick 1 or 2
+			if randNum == 1: # seller 1 gets first slot
+				return BU_NBB_withOrder(dist_1=profile.p1_dist, dist_2=profile.p2_dist, search_cost=profile.search_cost, 
+								first_price=profile.p1_price, second_price=profile.p2_price)
+			else: # seller 2 gets first slot
+				return BU_NBB_withOrder(dist_1=profile.p2_dist, dist_2=profile.p1_dist, search_cost=profile.search_cost, 
+								first_price=profile.p2_price, second_price=profile.p1_price)
 
 	#Validate buybox distribution
 	if not buyBoxDist.IsValid():
@@ -848,11 +962,12 @@ def buyerUtility(profile):
 	#Compute utility
 	tot_util = 0
 	for [BB_id, prob] in buyBoxDist.Get():
-		# print str(BB_id) +  " : " + str(prob) 
+		# print str(BB_id) +  " : " + str(prob)
+		### NEW dist: dist_1 = BB slot, dist_2 = Non-BB slot
 		if BB_id == 1:
-			tot_util += prob * BUwithOrder(dist=profile.dist, search_cost=profile.search_cost, BB_price=profile.p1_price, NBB_price=profile.p2_price)
+			tot_util += prob * BUwithOrder(dist_1=profile.p1_dist, dist_2=profile.p2_dist, search_cost=profile.search_cost, BB_price=profile.p1_price, NBB_price=profile.p2_price)
 		if BB_id == 2:
-			tot_util += prob * BUwithOrder(dist=profile.dist, search_cost=profile.search_cost, BB_price=profile.p2_price, NBB_price=profile.p1_price)
+			tot_util += prob * BUwithOrder(dist_1=profile.p2_dist, dist_2=profile.p1_dist, search_cost=profile.search_cost, BB_price=profile.p2_price, NBB_price=profile.p1_price)
 
 	return tot_util
 		
@@ -876,13 +991,16 @@ def BR(profile, my_id, expressive=False):
 		print profile.WhoAmI()
 		
 	### NEW PC : choose correct production cost
+	### NEW dist: need to select correct distribution based on ID in {1,2}
 	if my_id == 1:
 		productionCost = profile.productionCosts[0]
+		distribution = profile.p1_dist.Supp()
 	else:
 		productionCost = profile.productionCosts[1]
+		distribution = profile.p2_dist.Supp()
 	
 	#For each value in the support of dist 
-	for val in profile.dist.Supp():
+	for val in distribution: ### NEW dist
 		# print 
 		# print
 		curRev = ExpectedRev(profile=profile, my_id=my_id, my_price=val)
@@ -1184,16 +1302,17 @@ def opt_threshold(P):
 	#[threshold, buyer utility] pairs
 	th_bu = {}
 	real_step_num = step_num
-	while int(P.dist.Expectation()) / real_step_num == 0:
+	while int(P.p1_dist.Expectation()) / real_step_num == 0: ### NEW dist: for now assume same distribution will be used
 		real_step_num -= 1
 
 	if real_step_num == 0:
-		print "expectation:" + str(P.dist.Expectation())
+		print "expectation:" + str(P.p1_dist.Expectation()) ### NEW dist: for now assume same distribution will be used
 		raise NotImplementedError("SOMETHING WRONG HEREEEEEEE expectation to small?")
 
 
 	#Compute [threshold, price] pairs for symmetric equilibria
-	for threshold in xrange(1, int(P.dist.Expectation())-1, int(P.dist.Expectation()) / real_step_num):
+	### NEW dist: for now assume same distribution will be used
+	for threshold in xrange(1, int(P.p1_dist.Expectation())-1, int(P.p1_dist.Expectation()) / real_step_num):
 		# print "threshold: " + str(threshold)
 
 		#Define mechanism 
@@ -1306,7 +1425,9 @@ def do_plotSCtoLowestPriceUsingThreshold(distributions, productionCosts, for_cyc
 	# P.dist = beta_dist(2, 5, 100)
 
 	for distr in distributions:
-		P.dist = distr
+		### NEW dist: set both to be the same for now
+		P.p1_dist = distr
+		P.p2_dist = distr
 	
 		meta_data = ""
 		if for_cycles:
@@ -1317,7 +1438,8 @@ def do_plotSCtoLowestPriceUsingThreshold(distributions, productionCosts, for_cyc
 
 
 		#Write distribution to meta data
-		meta_data += "# Distribution:" + P.dist.WhoAmI() + "\r\n"
+		### NEW dist: for now assume same distribution will be used
+		meta_data += "# Distribution:" + P.p1_dist.WhoAmI() + "\r\n"
 
 		#Define mechanism 
 		P.mechanism = threshold_mechanism(0)
@@ -1329,7 +1451,8 @@ def do_plotSCtoLowestPriceUsingThreshold(distributions, productionCosts, for_cyc
 		### NEW plot PC
 		meta_data += "# Production Costs: seller 1 = " + str(productionCosts[0]) + "; seller 2 = " + str(productionCosts[1]) + "\r\n"
 
-		print "expectation = " + str(P.dist.Expectation())
+		### NEW dist: for now assume same distribution will be used
+		print "expectation = " + str(P.p1_dist.Expectation())
 		# print "dist:" 
 		# for [val, prob] in P.dist.Get():
 		# 	print "1- Pr[v < " + str(val) +"] =" + str( 1 - P.dist.CDF(val))
@@ -1338,8 +1461,9 @@ def do_plotSCtoLowestPriceUsingThreshold(distributions, productionCosts, for_cyc
 		# and minimizes the equilibrium price  
 		retArr = []
 		#For each search cost
-		real_step_num = float(P.dist.Expectation()) / (step_num + P.mechanism.shift)
-		for sc in frange(0, int(P.dist.Expectation()) - 1,  real_step_num):
+		### NEW dist: for now assume same distribution will be used
+		real_step_num = float(P.p1_dist.Expectation()) / (step_num + P.mechanism.shift)
+		for sc in frange(0, int(P.p1_dist.Expectation()) - 1,  real_step_num):
 			print "----------------"
 			#Set search cost (carefully!)
 			P.SetSearchCost(sc)
@@ -1380,7 +1504,10 @@ def do_plotSCtoMinAlphaInExponentialMech(distributions, productionCosts, for_cyc
 	for distr in distributions:
 		#Empty profile
 		P = Profile(search_cost=0, p1_price=0, p2_price=0)
-		P.dist = distr
+
+		### NEW dist: set both to be the same for now
+		P.p1_dist = distr
+		P.p2_dist = distr
 
 		P.productionCosts = productionCosts ### NEW PC
 
@@ -1392,7 +1519,8 @@ def do_plotSCtoMinAlphaInExponentialMech(distributions, productionCosts, for_cyc
 			meta_data = "# Solution concept: Equilibria \r\n"
 	
 		#Write distribution to meta data
-		meta_data += "# Distribution:" + P.dist.WhoAmI() + "\r\n"
+		### NEW dist: for now assume same distribution will be used
+		meta_data += "# Distribution:" + P.p1_dist.WhoAmI() + "\r\n"
 
 		#set mechanism 
 		P.mechanism = exponential_mechanism(0)
@@ -1407,8 +1535,9 @@ def do_plotSCtoMinAlphaInExponentialMech(distributions, productionCosts, for_cyc
 		#Returns for each search cost, the threshold that guarantees a symmetric equilibrium, and minimizes the equilibrium price  
 		retArr = []
 		#For each search cost
-		real_step_num = float(P.dist.Expectation()) / (step_num + P.mechanism.shift)
-		for sc in frange(0, (int(P.dist.Expectation()) - 1),  real_step_num):
+		### NEW dist: for now assume same distribution will be used
+		real_step_num = float(P.p1_dist.Expectation()) / (step_num + P.mechanism.shift)
+		for sc in frange(0, (int(P.p1_dist.Expectation()) - 1),  real_step_num):
 			#Set search cost (carefully!)
 			P.SetSearchCost(sc)
 
@@ -1443,9 +1572,11 @@ def do_plotSearchCostVsEqPrice(distributions, mechanisms, productionCosts, for_c
 
  			P.productionCosts = productionCosts ### NEW PC
 
-			P.dist = distr
+ 			### NEW dist: set both to be the same for now
+			P.p1_dist = distr
+			P.p2_dist = distr
 
-			supp_size = len(P.dist.Supp())
+			#supp_size = len(P.dist.Supp())
 
 			# starting_points = [ [P.dist.Supp()[supp_size / 10], P.dist.Supp()[supp_size / 10]], 
 			# 					[P.dist.Supp()[supp_size / 3], P.dist.Supp()[supp_size / 3]],
@@ -1478,7 +1609,8 @@ def do_plotSearchCostVsEqPrice(distributions, mechanisms, productionCosts, for_c
 			# meta_data = "# Starting point: " + str(s1) + ", " + str(s2) + "\r\n"
 
 			#Write distribution to meta data
-			meta_data += "# Distribution:" + P.dist.WhoAmI() + "\r\n"
+			### NEW dist: for now assume same distribution will be used
+			meta_data += "# Distribution:" + P.p1_dist.WhoAmI() + "\r\n"
 
 			#Define mechanism 
 			# P.mechanism = Low_first_mechanism()
@@ -1502,8 +1634,9 @@ def do_plotSearchCostVsEqPrice(distributions, mechanisms, productionCosts, for_c
 			shift = 0
 
 			#For each search cost
-			real_step_num = float(P.dist.Expectation()) / (step_num + mechan.shift)
-			for sc in frange(0, int(P.dist.Expectation()) - 1, real_step_num):
+			### NEW dist: for now assume same distribution will be used
+			real_step_num = float(P.p1_dist.Expectation()) / (step_num + mechan.shift)
+			for sc in frange(0, int(P.p1_dist.Expectation()) - 1, real_step_num):
 				#Set search cost (carefully!)
 				P.SetSearchCost(sc)
 				print "----------------"
@@ -1752,9 +1885,12 @@ def comp_social_welfare(dist_identifier, prodCost): ### NEW plot PC: prodCost = 
 		# print good_cols
 		#sw_cols = list of [sc, sw]
 		#sw = bau + p1_rev + p2_rev
-		#np_sw = np.array([ [sc, bu + 2 * p1_rev]  for [sc, bu, p1_rev] in good_cols])
+
 		### NEW plot PC
-		np_sw = np.array([ [sc, bau + p1_rev + p2_rev]  for [sc, bau, p1_rev, p2_rev] in good_cols])
+		if prodCost == 0:
+			np_sw = np.array([ [sc, bu + 2 * p1_rev]  for [sc, bu, p1_rev] in good_cols])
+		else:
+			np_sw = np.array([ [sc, bu + p1_rev + p2_rev]  for [sc, bu, p1_rev, p2_rev] in good_cols])
 		all_eq_sw.append([distribution, [mechanism, mech_pars], ["Search cost", "Social Welfare"], np_sw])
 
 
@@ -1776,9 +1912,12 @@ def comp_social_welfare(dist_identifier, prodCost): ### NEW plot PC: prodCost = 
 		# print good_cols
 		#sw_cols = list of [sc, sw]
 		#sw = bau + p1_rev + p2_rev
-		#np_sw = np.array([ [sc, bu + 2 * p1_rev]  for [sc, bu, p1_rev] in good_cols])
+
 		### NEW plot PC
-		np_sw = np.array([ [sc, bau + p1_rev + p2_rev]  for [sc, bau, p1_rev, p2_rev] in good_cols])
+		if prodCost == 0:
+			np_sw = np.array([ [sc, bu + 2 * p1_rev]  for [sc, bu, p1_rev] in good_cols])
+		else:
+			np_sw = np.array([ [sc, bu + p1_rev + p2_rev]  for [sc, bu, p1_rev, p2_rev] in good_cols])
 		all_eq_sw.append([distribution, [mechanism, mech_pars], ["Search cost", "Social Welfare"], np_sw])
 
 
@@ -2130,7 +2269,7 @@ def main():
 	mechanisms = [Low_first_mechanism(), u_random_mechanism()]
 	#mechanisms = [u_random_mechanism()]
 
-	productionCosts = [0,5] ### NEW PC
+	productionCosts = [0,0] ### NEW PC
 
 #-----
 	if args['plotFile']:
@@ -2149,7 +2288,7 @@ def main():
 		meta_data = "" 
 
 		#Define search cost
-		P.SetSearchCost(26)
+		P.SetSearchCost(35)
 
 		### NEW PC
 		P.productionCosts = [0, 0]
@@ -2158,7 +2297,7 @@ def main():
 		meta_data += "# search cost =  \r\n"
 
 		#Define setting (uncomment the distribution you want to use)
-		P.dist = int_uniform_dist(1, 101)
+		#P.dist = int_uniform_dist(1, 101)
 		#P.dist = int_uniform_dist(1, 11)
 		#P.dist = geometric_dist(0.01, 400)
 		#P.dist = beta_dist(2, 5, 100)
@@ -2167,9 +2306,15 @@ def main():
 		#P.dist =  equal_revenue_dist(200)
 
 		# print str(dist.Get())
+
+		### NEW dist
+		P.p1_dist = int_uniform_dist(1, 101)
+		P.p2_dist = int_uniform_dist(1, 101)
 		
 		#Write distribution to meta data
-		meta_data += "# Distribution:" + P.dist.WhoAmI() + "\r\n"
+		### NEW dist
+		meta_data += "# p1 Distribution:" + P.p1_dist.WhoAmI() + "\r\n"
+		meta_data += "# p2 Distribution:" + P.p2_dist.WhoAmI() + "\r\n"
 
 		#Define starting state
 		P.p1_price=0
@@ -2179,8 +2324,8 @@ def main():
 		#P.mechanism = Low_first_mechanism()
 		#P.mechanism = weighted_random_mechanism(0.7, 0.3)
 		#P.mechanism = weighted_random_mechanism(0.5, 0.5)
-		P.mechanism = u_random_mechanism()
-		#P.mechanism = threshold_mechanism(40)
+		#P.mechanism = u_random_mechanism()
+		P.mechanism = threshold_mechanism(40)
 		#P.mechanism = exponential_mechanism(-0.4)
 
 		#Write distribution to meta data
