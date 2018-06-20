@@ -893,20 +893,26 @@ def BUwithOrder(BB_dist, NBB_dist, search_cost, BB_price, NBB_price): ### NEW di
 ### NEW dist: dist_1 = first slot, dist_2 = second slot
 def BU_NBB_withOrder(dist_1, dist_2, search_cost, first_price, second_price):
 	#Compute reservation price
-	r_price_2 = res_price(dist=dist_2, search_cost=search_cost) ### NEW dist: use second slot to get reservation price
+	r_price_2 = res_price(dist=dist_2, search_cost=search_cost) ### NEW dist
 	r_price_1 = res_price(dist=dist_1, search_cost=search_cost)
 
 	tot_util = 0
-	if first_price > r_price_1:
-		print "BU_NBB ***************************"
+	
+	### NEW dist: don't look in either slot
+	if first_price > r_price_1 and second_price > r_price_2:
+		return 0
+
 	#For each match value with first seller
 	for [v1, p1] in dist_1.Get(): ### NEW dist
-		#Pay search cost for first seller
-		tot_util -= p1 * search_cost
+		
+		if first_price <= r_price_1: ### NEW dist: make sure first seller is looked at
+			#Pay search cost for first seller
+			tot_util -= p1 * search_cost
 
 		# print v1
-		#Match first immediately 
-		if v1- first_price > max(0, r_price_2 - second_price):
+		#Match first immediately
+		### NEW dist: make sure first seller is looked at
+		if v1- first_price > max(0, r_price_2 - second_price) and first_price <= r_price_1:
 			tot_util += p1 * (v1 - first_price)
 
 		#Search second seller	
@@ -922,7 +928,6 @@ def BU_NBB_withOrder(dist_1, dist_2, search_cost, first_price, second_price):
 
 
 #Gets a state and returns expected buyer utility (value - price)
-# Assuming: match value distribution is the same for both sellers
 # Assuming: if value - price = reservation price, then DO search.
 #TBD
 def buyerUtility(profile):
@@ -1832,10 +1837,11 @@ def plot_new(plthandler, all_data, plot_cap, exclude_mechs=[], expressive_label=
 				cap = int(len(search_costs) * plot_cap)
 
 				### NEW plot PC
-				if "Seller 1 equilibrium Revenue" in headers_to_plot or "Seller 1 equilibrium Price" in headers_to_plot or "Seller 2 equilibrium Revenue" in headers_to_plot or "Seller 2 equilibrium Price" in headers_to_plot:
+				if "Seller 1 equilibrium Revenue" in headers_to_plot or "Seller 1 equilibrium Price" in headers_to_plot or "Seller 2 equilibrium Revenue" in headers_to_plot or "Seller 2 equilibrium Price" in headers_to_plot or "Seller 1 average Revenue" in headers_to_plot or "Seller 1 average Price" in headers_to_plot or "Seller 2 average Revenue" in headers_to_plot or "Seller 2 average Price" in headers_to_plot:
 					# need different colors
-					if lab == "Seller 2 equilibrium Revenue" or lab == "Seller 2 equilibrium Price":
+					if lab == "Seller 2 equilibrium Revenue" or lab == "Seller 2 equilibrium Price" or lab == "Seller 2 average Revenue" or lab == "Seller 2 average Price":
 						set_color = mech_color_2[mechanism]
+
 					plthandler.plot(search_costs[:cap], other_column[:cap], 
 						label=mechanism + ": " + lab[0:8], 
 						color=set_color,
@@ -1951,6 +1957,7 @@ def comp_social_welfare(dist_identifier_1, dist_identifier_2, plotFlag): ### NEW
 	plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
 	           ncol=4, mode="expand", borderaxespad=0.)
 	plt.xlabel("Search cost")
+	plt.ylabel("Social Welfare")
 	plt.show()
 
 
@@ -2063,29 +2070,29 @@ def comp_utility(dist_identifier_1, dist_identifier_2, plot_cap=1):
 	plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
 	           ncol=4, mode="expand", borderaxespad=0.)
 	plt.xlabel("Search cost")
+	plt.ylabel("Utility")
 	plt.show()
 
 
 def comp_eq_price(dist_identifier_1, dist_identifier_2, plotFlag, plot_cap=1): ### NEW plot PC: plotFlag = 1 then have non-zero production costs and/or different distributions
-	cycle_or_equilibrium = "Cycles"
-	headers_to_plot = ["Search cost", "Seller 1 average Price", "Seller 2 average Price"] #
-	all_cyc_data = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
-					cycle_or_equilibrium=cycle_or_equilibrium, 
-					is_opt_par_file=False,
-					headers_to_plot=headers_to_plot)
-
-	all_cyc_pr = []
-	#Create average seller price
-	for [distribution1, distribution2, [mechanism, mech_pars], headers_to_plot, good_cols] in all_cyc_data:
-		np_ave_pr = np.array([ [sc, float(p1_ave_pr + p2_ave_pr) / 2]  for [sc, p1_ave_pr, p2_ave_pr] in good_cols])
-		all_cyc_pr.append([distribution1, distribution2, [mechanism, mech_pars], ["Search cost", "Sellers' average price"], np_ave_pr])
-
-
-
-	cycle_or_equilibrium = "Equilibria"
-
 	### NEW plot PC
 	if plotFlag == 0:
+		cycle_or_equilibrium = "Cycles"
+		headers_to_plot = ["Search cost", "Seller 1 average Price", "Seller 2 average Price"] #
+		all_cyc_data = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
+						cycle_or_equilibrium=cycle_or_equilibrium, 
+						is_opt_par_file=False,
+						headers_to_plot=headers_to_plot)
+
+		all_cyc_pr = []
+		#Create average seller price
+		for [distribution1, distribution2, [mechanism, mech_pars], headers_to_plot, good_cols] in all_cyc_data:
+			np_ave_pr = np.array([ [sc, float(p1_ave_pr + p2_ave_pr) / 2]  for [sc, p1_ave_pr, p2_ave_pr] in good_cols])
+			all_cyc_pr.append([distribution1, distribution2, [mechanism, mech_pars], ["Search cost", "Sellers' average price"], np_ave_pr])
+
+
+		cycle_or_equilibrium = "Equilibria"
+
 		headers_to_plot = ["Search cost", "Equilibrium price"]
 
 		all_eq_data = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
@@ -2130,6 +2137,7 @@ def comp_eq_price(dist_identifier_1, dist_identifier_2, plotFlag, plot_cap=1): #
 		plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
 	           ncol=4, mode="expand", borderaxespad=0.)
 		plt.xlabel("Search cost")
+		plt.ylabel("Equilibrium Price")
 		plt.show()
 	else:
 		#headers_to_plot = ["Search cost", "Seller 1 equilibrium Price", "Seller 2 equilibrium Price"]
@@ -2140,16 +2148,18 @@ def comp_eq_price(dist_identifier_1, dist_identifier_2, plotFlag, plot_cap=1): #
 
 		# first subplot
 		# yAxisVal1 = [min_y, max_y]
-		yAxisVal1 = two_subplots(plthandler=ax1, headers_to_plot=["Search cost", "Seller 1 equilibrium Price"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_data=all_cyc_pr)
+		yAxisVal1 = two_subplots(plthandler=ax1, equil_headers_to_plot=["Search cost", "Seller 1 equilibrium Price"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_headers_to_plot=["Search cost", "Seller 1 average Price"])
 
 		# second subplot
-		yAxisVal2 = two_subplots(plthandler=ax2, headers_to_plot=["Search cost", "Seller 2 equilibrium Price"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_data=all_cyc_pr)
+		yAxisVal2 = two_subplots(plthandler=ax2, equil_headers_to_plot=["Search cost", "Seller 2 equilibrium Price"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_headers_to_plot=["Search cost", "Seller 2 average Price"])
 
 		minVal = min(yAxisVal1[0],yAxisVal2[0])
 		maxVal = max(yAxisVal1[1],yAxisVal2[1])
 		ax1.set_ylim([minVal,maxVal])
 		ax2.set_ylim([minVal,maxVal])
 		plt.xlabel("Search cost")
+		ax1.set_ylabel("Equilibrium Price")
+		ax2.set_ylabel("Equilibrium Price")
 		plt.show()
 		
 
@@ -2157,37 +2167,51 @@ def comp_eq_price(dist_identifier_1, dist_identifier_2, plotFlag, plot_cap=1): #
 		### NEW subplots: one subplot is for LF and Uniform Random mechanisms. one subplot is for exponential and threshold mechanisms.
 		fig2, (ax1, ax2) = plt.subplots(2)
 		fig2.canvas.set_window_title("Equilibrium price" + " , " + "Dist1: "  + str(dist_identifier_1) + ", Dist2: "  + str(dist_identifier_2)) ### NEW plot PC
-		yAxisVal1 = subplots_Exp_Thresh(plthandler=ax1, headers_to_plot_1=["Search cost", "Seller 1 equilibrium Price"], headers_to_plot_2=["Search cost", "Seller 2 equilibrium Price"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_data=all_cyc_pr)
-		yAxisVal2 = subplots_LF_UniRand(plthandler=ax2, headers_to_plot_1=["Search cost", "Seller 1 equilibrium Price"], headers_to_plot_2=["Search cost", "Seller 2 equilibrium Price"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_data=all_cyc_pr)
+		yAxisVal1 = subplots_Exp_Thresh(plthandler=ax1, headers_to_plot_1=["Search cost", "Seller 1 equilibrium Price"], headers_to_plot_2=["Search cost", "Seller 2 equilibrium Price"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap)
+		yAxisVal2 = subplots_LF_UniRand(plthandler=ax2, headers_to_plot_1=["Search cost", "Seller 1 equilibrium Price"], headers_to_plot_2=["Search cost", "Seller 2 equilibrium Price"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_headers_to_plot_1=["Search cost", "Seller 1 average Price"], cycle_headers_to_plot_2=["Search cost", "Seller 2 average Price"])
 
 		minVal = min(yAxisVal1[0],yAxisVal2[0])
 		maxVal = max(yAxisVal1[1],yAxisVal2[1])
 		ax1.set_ylim([minVal,maxVal])
 		ax2.set_ylim([minVal,maxVal])
 		plt.xlabel("Search cost")
+		ax1.set_ylabel("Equilibrium Price")
+		ax2.set_ylabel("Equilibrium Price")
+		plt.show()
+
+
+		### NEW plot: seller 2 price - seller 1 price
+		fig3 = plt.figure()
+		fig3.canvas.set_window_title("Seller 2 Price - Seller 1 Price" + " , " + "Dist1: "  + str(dist_identifier_1) + ", Dist2: "  + str(dist_identifier_2)) ### NEW plot PC
+		yVals = plot_change(plthandler=plt, equil_headers_to_plot=["Search cost", "Seller 1 equilibrium Price", "Seller 2 equilibrium Price"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_headers_to_plot=["Search cost", "Seller 1 average Price", "Seller 2 average Price"], rev_or_pr="pr")
+
+		plt.ylim([yVals[0],yVals[1]])
+		plt.xlabel("Search cost")
+		plt.ylabel("Seller 2 price - Seller 1 price")
 		plt.show()
 
 
 def comp_seller_revenue(dist_identifier_1, dist_identifier_2, plotFlag, plot_cap=1): ### NEW plot PC: plotFlag = 1 then have non-zero production costs and/or different distributions
-	cycle_or_equilibrium = "Cycles"
-	headers_to_plot = ["Search cost", "Seller 1 average Revenue", "Seller 2 average Revenue"] #
-	all_cyc_data = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
-		cycle_or_equilibrium=cycle_or_equilibrium, 
-		is_opt_par_file=False,
-		headers_to_plot=headers_to_plot)
-
-	all_cyc_rev = []
-
-	#Create average seller revenue
-	for [distribution1, distribution2, [mechanism, mech_pars], headers_to_plot, good_cols] in all_cyc_data:
-		np_ave_rev = np.array([ [sc, float(p1_ave_rev + p2_ave_rev) / 2]  for [sc, p1_ave_rev, p2_ave_rev] in good_cols])
-		all_cyc_rev.append([distribution1, distribution2, [mechanism, mech_pars], ["Search cost", "Sellers' average revenue"], np_ave_rev])
-
-
-
-	cycle_or_equilibrium = "Equilibria"
 	### NEW plot PC
 	if plotFlag == 0:
+		cycle_or_equilibrium = "Cycles"
+		headers_to_plot = ["Search cost", "Seller 1 average Revenue", "Seller 2 average Revenue"] #
+		all_cyc_data = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
+			cycle_or_equilibrium=cycle_or_equilibrium, 
+			is_opt_par_file=False,
+			headers_to_plot=headers_to_plot)
+
+		all_cyc_rev = []
+
+		#Create average seller revenue
+		for [distribution1, distribution2, [mechanism, mech_pars], headers_to_plot, good_cols] in all_cyc_data:
+			np_ave_rev = np.array([ [sc, float(p1_ave_rev + p2_ave_rev) / 2]  for [sc, p1_ave_rev, p2_ave_rev] in good_cols])
+			all_cyc_rev.append([distribution1, distribution2, [mechanism, mech_pars], ["Search cost", "Sellers' average revenue"], np_ave_rev])
+
+
+
+		cycle_or_equilibrium = "Equilibria"
+
 		headers_to_plot = ["Search cost", "Seller revenue"]
 		all_eq_data = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
 			cycle_or_equilibrium=cycle_or_equilibrium, 
@@ -2216,6 +2240,7 @@ def comp_seller_revenue(dist_identifier_1, dist_identifier_2, plotFlag, plot_cap
 		plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
 	           ncol=4, mode="expand", borderaxespad=0.)
 		plt.xlabel("Search cost")
+		plt.ylabel("Seller Revenue")
 		plt.show()
 	else:
 		#headers_to_plot = ["Search cost", "Seller 1 equilibrium Revenue", "Seller 2 equilibrium Revenue"]
@@ -2226,15 +2251,17 @@ def comp_seller_revenue(dist_identifier_1, dist_identifier_2, plotFlag, plot_cap
 
 		# first subplot
 		# yAxisVal1 = [min_y, max_y]
-		yAxisVal1 = two_subplots(plthandler=ax1, headers_to_plot=["Search cost", "Seller 1 equilibrium Revenue"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_data=all_cyc_rev)
-
+		yAxisVal1 = two_subplots(plthandler=ax1, equil_headers_to_plot=["Search cost", "Seller 1 equilibrium Revenue"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_headers_to_plot=["Search cost", "Seller 1 average Revenue"])
+		
 		# second subplot
-		yAxisVal2 = two_subplots(plthandler=ax2, headers_to_plot=["Search cost", "Seller 2 equilibrium Revenue"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_data=all_cyc_rev)
+		yAxisVal2 = two_subplots(plthandler=ax2, equil_headers_to_plot=["Search cost", "Seller 2 equilibrium Revenue"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_headers_to_plot=["Search cost", "Seller 2 average Revenue"])
 
 		minVal = min(yAxisVal1[0],yAxisVal2[0])
 		maxVal = max(yAxisVal1[1],yAxisVal2[1])
 		ax1.set_ylim([minVal,maxVal])
 		ax2.set_ylim([minVal,maxVal])
+		ax1.set_ylabel("Seller Revenue")
+		ax2.set_ylabel("Seller Revenue")
 		plt.xlabel("Search cost")
 		plt.show()
 
@@ -2242,27 +2269,113 @@ def comp_seller_revenue(dist_identifier_1, dist_identifier_2, plotFlag, plot_cap
 		### NEW subplots: one subplot is for LF and Uniform Random mechanisms. one subplot is for exponential and threshold mechanisms.
 		fig2, (ax1, ax2) = plt.subplots(2)
 		fig2.canvas.set_window_title("Seller revenue" + " , " + "Dist1: "  + str(dist_identifier_1) + ", Dist2: "  + str(dist_identifier_2)) ### NEW plot PC
-		yAxisVal1 = subplots_Exp_Thresh(plthandler=ax1, headers_to_plot_1=["Search cost", "Seller 1 equilibrium Revenue"], headers_to_plot_2=["Search cost", "Seller 2 equilibrium Revenue"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_data=all_cyc_rev)
-		yAxisVal2 = subplots_LF_UniRand(plthandler=ax2, headers_to_plot_1=["Search cost", "Seller 1 equilibrium Revenue"], headers_to_plot_2=["Search cost", "Seller 2 equilibrium Revenue"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_data=all_cyc_rev)
+		yAxisVal1 = subplots_Exp_Thresh(plthandler=ax1, headers_to_plot_1=["Search cost", "Seller 1 equilibrium Revenue"], headers_to_plot_2=["Search cost", "Seller 2 equilibrium Revenue"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap)
+		yAxisVal2 = subplots_LF_UniRand(plthandler=ax2, headers_to_plot_1=["Search cost", "Seller 1 equilibrium Revenue"], headers_to_plot_2=["Search cost", "Seller 2 equilibrium Revenue"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_headers_to_plot_1=["Search cost", "Seller 1 average Revenue"], cycle_headers_to_plot_2=["Search cost", "Seller 2 average Revenue"])
 
 		minVal = min(yAxisVal1[0],yAxisVal2[0])
 		maxVal = max(yAxisVal1[1],yAxisVal2[1])
 		ax1.set_ylim([minVal,maxVal])
 		ax2.set_ylim([minVal,maxVal])
 		plt.xlabel("Search cost")
+		ax1.set_ylabel("Seller Revenue")
+		ax2.set_ylabel("Seller Revenue")
 		plt.show()
 
 
-### NEW plot layout: one subplot is for seller 1, one subplot is for seller 2. Both subplots include all 4 mechanisms
-def two_subplots(plthandler, headers_to_plot, dist_identifier_1, dist_identifier_2, plot_cap, cycle_data):
+		### NEW plot: seller 1 Revenue - seller 2 Revenue
+		fig3 = plt.figure()
+		fig3.canvas.set_window_title("Seller 1 Revenue - Seller 2 Revenue" + " , " + "Dist1: "  + str(dist_identifier_1) + ", Dist2: "  + str(dist_identifier_2)) ### NEW plot PC
+		yVals = plot_change(plthandler=plt, equil_headers_to_plot=["Search cost", "Seller 1 equilibrium Revenue", "Seller 2 equilibrium Revenue"], dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, plot_cap=plot_cap, cycle_headers_to_plot=["Search cost", "Seller 1 average Revenue", "Seller 2 average Revenue"], rev_or_pr="rev")
+
+		plt.ylim([yVals[0],yVals[1]])
+		plt.xlabel("Search cost")
+		plt.ylabel("Seller 1 Revenue - Seller 2 Revenue")
+		plt.show()
+
+# Assume seller 2 production cost >= seller 1 production cost
+def get_revenue_change(all_data):
+	all_rev_change = []
+	#Create change in seller revenue (seller 1 rev - seller 2 rev)
+	for [distribution1, distribution2, [mechanism, mech_pars], headers_to_plot, good_cols] in all_data:
+		np_rev = np.array([ [sc, float(p1_rev - p2_rev)]  for [sc, p1_rev, p2_rev] in good_cols])
+		all_rev_change.append([distribution1, distribution2, [mechanism, mech_pars], ["Search cost", "Change in sellers' average revenue"], np_rev])
+
+	return all_rev_change
+
+# Assume seller 2 production cost >= seller 1 production cost
+def get_price_change(all_data):
+	all_price_change = []
+	#Create change in seller price (seller 2 price - seller 1 price)
+	for [distribution1, distribution2, [mechanism, mech_pars], headers_to_plot, good_cols] in all_data:
+		np_pr = np.array([ [sc, float(p2_pr - p1_pr)]  for [sc, p1_pr, p2_pr] in good_cols])
+		all_price_change.append([distribution1, distribution2, [mechanism, mech_pars], ["Search cost", "Change in sellers' average price"], np_pr])
+
+	return all_price_change
+
+### NEW plot: plots the difference in seller revenue or seller price
+# rev_or_pr is used to identify if revenue or price should be plotted
+def plot_change(plthandler, equil_headers_to_plot, dist_identifier_1, dist_identifier_2, plot_cap, cycle_headers_to_plot, rev_or_pr):
 	# LF cycle
-	plot_new(plthandler=plthandler, all_data=cycle_data, exclude_mechs=["Uniform Random"], plot_cap=plot_cap)
+	all_cyc_data = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
+					cycle_or_equilibrium="Cycles", 
+					is_opt_par_file=False,
+					headers_to_plot=cycle_headers_to_plot)
+	
+	if rev_or_pr == "rev": # change in revenue
+		all_cyc_change = get_revenue_change(all_data=all_cyc_data)
+		plot_new(plthandler=plthandler, all_data=all_cyc_change, exclude_mechs=["Uniform Random"], plot_cap=plot_cap)
+	elif rev_or_pr == "pr": # change in price
+		all_cyc_change = get_price_change(all_data=all_cyc_data)
+		plot_new(plthandler=plthandler, all_data=all_cyc_change, exclude_mechs=["Uniform Random"], plot_cap=plot_cap)
 
 	# uniform random equilibrium
 	all_eq_data_1 = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
 		cycle_or_equilibrium="Equilibria", 
 		is_opt_par_file=False,
-		headers_to_plot=headers_to_plot)
+		headers_to_plot=equil_headers_to_plot)
+
+	if rev_or_pr == "rev": # change in revenue
+		all_eq_change_1 = get_revenue_change(all_data=all_eq_data_1)
+		plot_new(plthandler=plthandler, all_data=all_eq_change_1, exclude_mechs=["LF"], plot_cap=plot_cap)
+	elif rev_or_pr == "pr": # change in price
+		all_eq_change_1 = get_price_change(all_data=all_eq_data_1)
+		plot_new(plthandler=plthandler, all_data=all_eq_change_1, exclude_mechs=["LF"], plot_cap=plot_cap)
+	
+
+	# plot threshold and exponential equilibrium
+	all_eq_data_2 = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
+		cycle_or_equilibrium="Equilibria", 
+		is_opt_par_file=True,
+		headers_to_plot=equil_headers_to_plot)
+
+	if rev_or_pr == "rev": # change in revenue
+		all_eq_change_2 = get_revenue_change(all_data=all_eq_data_2)
+		plot_new(plthandler=plthandler, all_data=all_eq_change_2, plot_cap=plot_cap)
+	elif rev_or_pr == "pr": # change in price
+		all_eq_change_2 = get_price_change(all_data=all_eq_data_2)
+		plot_new(plthandler=plthandler, all_data=all_eq_change_2, plot_cap=plot_cap)
+
+	plthandler.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+	           ncol=4, mode="expand", borderaxespad=0.)
+
+	# determine y axis values
+	return plot_yVals(dataList=[all_eq_change_1, all_eq_change_2, all_cyc_change])
+
+### NEW plot layout: one subplot is for seller 1, one subplot is for seller 2. Both subplots include all 4 mechanisms
+def two_subplots(plthandler, equil_headers_to_plot, dist_identifier_1, dist_identifier_2, plot_cap, cycle_headers_to_plot):
+	# LF cycle
+	all_cyc_data = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
+					cycle_or_equilibrium="Cycles", 
+					is_opt_par_file=False,
+					headers_to_plot=cycle_headers_to_plot)
+	
+	plot_new(plthandler=plthandler, all_data=all_cyc_data, exclude_mechs=["Uniform Random"], plot_cap=plot_cap)
+
+	# uniform random equilibrium
+	all_eq_data_1 = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
+		cycle_or_equilibrium="Equilibria", 
+		is_opt_par_file=False,
+		headers_to_plot=equil_headers_to_plot)
 
 	plot_new(plthandler=plthandler, all_data=all_eq_data_1, exclude_mechs=["LF"], plot_cap=plot_cap)
 
@@ -2270,7 +2383,7 @@ def two_subplots(plthandler, headers_to_plot, dist_identifier_1, dist_identifier
 	all_eq_data_2 = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
 		cycle_or_equilibrium="Equilibria", 
 		is_opt_par_file=True,
-		headers_to_plot=headers_to_plot)
+		headers_to_plot=equil_headers_to_plot)
 
 	plot_new(plthandler=plthandler, all_data=all_eq_data_2, plot_cap=plot_cap)
 
@@ -2278,7 +2391,7 @@ def two_subplots(plthandler, headers_to_plot, dist_identifier_1, dist_identifier
 	           ncol=4, mode="expand", borderaxespad=0.)
 
 	# determine y axis values
-	return plot_yVals(dataList=[all_eq_data_1, all_eq_data_2])
+	return plot_yVals(dataList=[all_eq_data_1, all_eq_data_2, all_cyc_data])
 
 # NEW plot: determines minimum and maximum y axis values for the plot
 def plot_yVals(dataList):
@@ -2301,7 +2414,7 @@ def plot_yVals(dataList):
 
 ### NEW plot layout: one subplot is for LF and Uniform Random mechanisms. one subplot is for exponential and threshold mechanisms.
 # both subplots show seller 1 and seller 2
-def subplots_Exp_Thresh(plthandler, headers_to_plot_1, headers_to_plot_2, dist_identifier_1, dist_identifier_2, plot_cap, cycle_data):
+def subplots_Exp_Thresh(plthandler, headers_to_plot_1, headers_to_plot_2, dist_identifier_1, dist_identifier_2, plot_cap):
 	# plot threshold and exponential equilibrium for seller 1
 	all_eq_data_1 = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
 		cycle_or_equilibrium="Equilibria", 
@@ -2325,9 +2438,20 @@ def subplots_Exp_Thresh(plthandler, headers_to_plot_1, headers_to_plot_2, dist_i
 	return plot_yVals(dataList=[all_eq_data_1, all_eq_data_2])
 
 ### NEW plot layout: makes subplot for LF and Uniform Random mechanisms
-def subplots_LF_UniRand(plthandler, headers_to_plot_1, headers_to_plot_2, dist_identifier_1, dist_identifier_2, plot_cap, cycle_data):
-	# LF cycle
-	plot_new(plthandler=plthandler, all_data=cycle_data, exclude_mechs=["Uniform Random"], plot_cap=plot_cap)
+def subplots_LF_UniRand(plthandler, headers_to_plot_1, headers_to_plot_2, dist_identifier_1, dist_identifier_2, plot_cap, cycle_headers_to_plot_1, cycle_headers_to_plot_2):
+	# LF cycle for seller 1
+	cycle_data_1 = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
+		cycle_or_equilibrium="Cycles", 
+		is_opt_par_file=False,
+		headers_to_plot=cycle_headers_to_plot_1)
+	plot_new(plthandler=plthandler, all_data=cycle_data_1, exclude_mechs=["Uniform Random"], plot_cap=plot_cap)
+
+	# LF cycle for seller 2
+	cycle_data_2 = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
+		cycle_or_equilibrium="Cycles", 
+		is_opt_par_file=False,
+		headers_to_plot=cycle_headers_to_plot_2)
+	plot_new(plthandler=plthandler, all_data=cycle_data_2, exclude_mechs=["Uniform Random"], plot_cap=plot_cap)
 
 	# uniform random equilibrium for seller 1
 	all_eq_data_1 = extract_data(dist_identifier_1=dist_identifier_1, dist_identifier_2=dist_identifier_2, 
@@ -2349,7 +2473,7 @@ def subplots_LF_UniRand(plthandler, headers_to_plot_1, headers_to_plot_2, dist_i
 	           ncol=4, mode="expand", borderaxespad=0.)
 
 	# determine y axis values
-	return plot_yVals(dataList=[all_eq_data_1, all_eq_data_2, cycle_data])
+	return plot_yVals(dataList=[all_eq_data_1, all_eq_data_2, cycle_data_1, cycle_data_2])
 
 def comp_exp_spec(dist_identifier, plot_cap=1):
 	cycle_or_equilibrium = "Equilibria"
@@ -2411,14 +2535,14 @@ def compare_mechanisms(plotFlag=0): ### NEW plot PC: plotFlag = 1 then have non-
 	# dist_identifier_1 = "Almost Equal revenue distribution, precision=300"
 
 	# -----Select correct identifier for second distribution:--------
-	#dist_identifier_2 = "Integer uniform distribution, low=1,  high=101"
+	dist_identifier_2 = "Integer uniform distribution, low=1,  high=101"
 	# dist_identifier_2 = "Beta distribution, parameter=0.5,0.5,100"	
 	# dist_identifier_2 = "Beta distribution, parameter=5,1,100"
 	# dist_identifier_2 = "Beta distribution, parameter=1,3,100"		
 	#dist_identifier_2 = "Beta distribution, parameter=2,2,210"
 	# dist_identifier_2 = "Beta distribution, parameter=2,5,130"
 	#dist_identifier_2 = "Equal revenue distribution, precision=200"
-	dist_identifier_2 = "Geometric distribution, parameter=0.01, precision=400"
+	#dist_identifier_2 = "Geometric distribution, parameter=0.01, precision=400"
 	# dist_identifier_2 = "Almost Equal revenue distribution, precision=300"
 
 	### NEW dist: if different distributions, plotFlag needs to be 1
@@ -2491,9 +2615,9 @@ def main():
 					# beta_dist(1, 3, 100) 
 					# beta_dist(2, 2, 200) 
 					# beta_dist(2, 5, 200) 
-					geometric_dist(0.01, 400)
+					#geometric_dist(0.01, 400)
 					# ,geometric_dist(0.02, 300)
-					#int_uniform_dist(1, 101)
+					int_uniform_dist(1, 101)
 					# int_uniform_dist(1, 1001)
 					# int_uniform_dist(400, 600)
 					#equal_revenue_dist(200)
@@ -2505,7 +2629,7 @@ def main():
 	mechanisms = [Low_first_mechanism(), u_random_mechanism()]
 	#mechanisms = [u_random_mechanism()]
 
-	productionCosts = [0,0] ### NEW PC
+	productionCosts = [0,5] ### NEW PC
 
 #-----
 	if args['plotFile']:
@@ -2524,16 +2648,16 @@ def main():
 		meta_data = "" 
 
 		#Define search cost
-		P.SetSearchCost(35)
+		P.SetSearchCost(24)
 
 		### NEW PC
-		P.productionCosts = [0, 0]
+		P.productionCosts = [0, 5]
 
 		#Write search cost to meta data
 		meta_data += "# search cost =  \r\n"
 
 		#Define setting (uncomment the distribution you want to use)
-		P.dist = int_uniform_dist(1, 101)
+		#P.dist = int_uniform_dist(1, 101)
 		#P.dist = int_uniform_dist(1, 11)
 		#P.dist = geometric_dist(0.01, 400)
 		#P.dist = beta_dist(2, 5, 100)
@@ -2545,7 +2669,7 @@ def main():
 
 		### NEW dist
 		P.p1_dist = int_uniform_dist(1, 101)
-		P.p2_dist = geometric_dist(0.01, 400)
+		P.p2_dist = int_uniform_dist(1, 101)
 		
 		### NEW dist: Write both distribution to meta data
 		meta_data += "# Distribution 1:" + P.p1_dist.WhoAmI() + "\r\n"
@@ -2579,7 +2703,7 @@ def main():
 
 		# print "1 best response: " + str(BR(profile=P, my_id=1))
 		# print "2 best response: " + str(BR(profile=P, my_id=2))
-		[rv, end_profile] = BRD(P, expressive=True)
+		[rv, end_profile] = BRD(P, expressive=False)
 		if not end_profile.IsEmpty():
 			[bu, p1_rev, p2_rev] = studyState(end_profile)
 			print "Equil. buyer utility: " + str(bu)
